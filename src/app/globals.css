@@ -1,26 +1,299 @@
 @import "tailwindcss";
 
+/* ============================================================
+   AKAAI CRM — Design System
+   Migrado do Portfólio AKAAI HUB
+   ============================================================ */
+
+@custom-variant dark (&:is(.dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000000;
+  --foreground: #f0f0f0;
+  --card: #0a0a0a;
+  --card-foreground: #f0f0f0;
+  --popover: #0a0a0a;
+  --popover-foreground: #f0f0f0;
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+  --secondary: #141414;
+  --secondary-foreground: #f0f0f0;
+  --muted: #1a1a1a;
+  --muted-foreground: #888888;
+  --accent: #1e1e1e;
+  --accent-foreground: #f0f0f0;
+  --destructive: #ef4444;
+  --destructive-foreground: #fca5a5;
+  --border: #222222;
+  --input: #222222;
+  --ring: #444444;
+  --chart-1: #10b981;
+  --chart-2: #f97316;
+  --chart-3: #d946ef;
+  --chart-4: #3b82f6;
+  --chart-5: #eab308;
+  --radius: 0.75rem;
+
+  --greenflow: #10b981;
+  --firecontrol: #f97316;
+  --danceflow: #d946ef;
+
+  /* Legacy CRM Aliases */
+  --bg-base: var(--background);
+  --bg-surface: var(--card);
+  --bg-elevated: var(--secondary);
+  --border-subtle: var(--border);
+  --border-muted: var(--input);
+  --accent-primary: var(--primary);
+  --accent-secondary: var(--secondary-foreground);
+  --accent-glow: rgba(255, 255, 255, 0.15);
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  --text-primary: var(--foreground);
+  --text-secondary: var(--muted-foreground);
+  --text-muted: #888888;
 }
 
 @theme inline {
+  --font-sans: var(--font-sora), 'Sora', sans-serif;
+  --color-greenflow: var(--greenflow);
+  --color-firecontrol: var(--firecontrol);
+  --color-danceflow: var(--danceflow);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar customizada */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-surface); }
+::-webkit-scrollbar-thumb { background: var(--border-muted); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-primary); }
+
+/* ============================================================
+   Component Classes (Tailwind v4: @utility)
+   ============================================================ */
+
+@layer utilities {
+  .glass-card {
+    border-radius: 0.75rem;
+    border: 1px solid #1e1e2e;
+    background-color: rgba(17, 17, 24, 0.8);
+    backdrop-filter: blur(4px);
+  }
+
+  .badge-sla {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 9999px;
+    background-color: rgba(239, 68, 68, 0.2);
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #f87171;
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .badge-status {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.125rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .input-dark {
+    width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid #2a2a3e;
+    background-color: #111118;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: #f1f1f5;
+    outline: none;
+    transition: all 0.15s;
+  }
+  .input-dark::placeholder { color: #6b6b8a; }
+  .input-dark:focus {
+    border-color: var(--foreground);
+    box-shadow: 0 0 0 1px var(--foreground);
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 9999px; /* Padrão do portfólio (rounded-full) */
+    background-color: var(--foreground);
+    padding: 0.5rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--background);
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-primary:active { transform: scale(0.95); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #a1a1c2;
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  .btn-ghost:hover { background-color: #1e1e2e; color: #f1f1f5; }
+  .btn-ghost:active { transform: scale(0.95); }
+
+  .metric-card {
+    border-radius: 0.75rem;
+    border: 1px solid #1e1e2e;
+    background-color: rgba(17, 17, 24, 0.8);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .kanban-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid #1e1e2e;
+    background-color: #0d0d14;
+    padding: 0.75rem;
+    min-height: 200px;
+  }
+
+  .lead-card {
+    border-radius: 0.5rem;
+    border: 1px solid #2a2a3e;
+    background-color: #111118;
+    padding: 0.75rem;
+    cursor: grab;
+    transition: all 0.15s;
+  }
+  .lead-card:active { cursor: grabbing; }
+  .lead-card:hover {
+    border-color: var(--border);
+    background-color: var(--card);
+  }
+
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #a1a1c2;
+    transition: all 0.15s;
+    text-decoration: none;
+    width: 100%;
+  }
+  .sidebar-link:hover { background-color: #1e1e2e; color: #f1f1f5; }
+  .sidebar-link.active {
+    background-color: var(--secondary);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+  }
+
+  .pixel-dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+  }
+  .pixel-dot.ok     { background-color: #34d399; animation: pulse-ok 3s ease-in-out infinite; }
+  .pixel-dot.warning { background-color: #fbbf24; animation: pulse-glow 2s ease-in-out infinite; }
+  .pixel-dot.error  { background-color: #f87171; animation: pulse-glow 1s ease-in-out infinite; }
+  .pixel-dot.unknown { background-color: #6b7280; }
+
+  .text-gradient {
+    color: var(--foreground);
+  }
+
+  .glow-indigo {
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.2s ease-out;
+  }
+
+  .animate-slide-in {
+    animation: slide-in-right 0.3s ease-out;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ============================================================
+   Keyframes
+   ============================================================ */
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes pulse-ok {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
