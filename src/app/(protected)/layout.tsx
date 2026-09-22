@@ -4,6 +4,8 @@ import Sidebar from '@/components/ui/Sidebar'
 import { getAllowedHrefs } from '@/lib/nav'
 import type { User, UserRole } from '@/types/database'
 
+import AppLayout from '@/components/ui/AppLayout'
+
 export default async function ProtectedLayout({
   children,
 }: {
@@ -33,11 +35,8 @@ export default async function ProtectedLayout({
   const allowedHrefs = getAllowedHrefs(typedProfile.role as UserRole)
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar user={typedProfile} allowedHrefs={allowedHrefs} />
-      <main className="flex-1 overflow-auto bg-background">
-        {children}
-      </main>
-    </div>
+    <AppLayout user={typedProfile} allowedHrefs={allowedHrefs}>
+      {children}
+    </AppLayout>
   )
 }

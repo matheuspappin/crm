@@ -29,6 +29,8 @@ interface SidebarProps {
   user: User
   /** hrefs permitidos — pré-computados no Server Component para evitar hydration mismatch */
   allowedHrefs: string[]
+  onNavigate?: () => void
+  onClose?: () => void
 }
 
 const roleColors: Record<string, string> = {
@@ -45,7 +47,7 @@ const roleLabels: Record<string, string> = {
   owner: '👑 Owner',
 }
 
-export default function Sidebar({ user, allowedHrefs }: SidebarProps) {
+export default function Sidebar({ user, allowedHrefs, onNavigate, onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -61,14 +63,21 @@ export default function Sidebar({ user, allowedHrefs }: SidebarProps) {
   return (
     <aside className="flex flex-col w-64 min-h-screen bg-[#0d0d14] border-r border-border p-4">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-2 mb-8">
-        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-foreground/20 border border-foreground/30">
-          <Zap className="w-5 h-5 text-foreground" />
+      <div className="flex items-center justify-between px-2 mb-8">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-foreground/20 border border-foreground/30">
+            <Zap className="w-5 h-5 text-foreground" />
+          </div>
+          <div>
+            <span className="text-sm font-bold text-gradient">Super Admin</span>
+            <p className="text-xs text-muted-foreground">CRM Agência</p>
+          </div>
         </div>
-        <div>
-          <span className="text-sm font-bold text-gradient">Super Admin</span>
-          <p className="text-xs text-muted-foreground">CRM Agência</p>
-        </div>
+        {onClose && (
+          <button onClick={onClose} className="md:hidden p-1 text-muted-foreground hover:text-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -83,6 +92,7 @@ export default function Sidebar({ user, allowedHrefs }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn('sidebar-link', isActive && 'active')}
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
