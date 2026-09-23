@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { MonitorPlay } from 'lucide-react'
 import type { Lead, Project } from '@/types/database'
@@ -72,3 +73,4 @@ export default async function VendasProjetosPage() {
     </div>
   )
 }
+

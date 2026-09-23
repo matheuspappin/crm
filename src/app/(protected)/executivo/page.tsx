@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import {
   Crown, TrendingUp, DollarSign, Users, Zap,
@@ -229,3 +230,4 @@ export default async function ExecutivoPage() {
     </div>
   )
 }
+

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { ProjectManagementBoard } from '@/components/executivo/ProjectManagementBoard'
@@ -75,3 +76,4 @@ export default async function ProjetosPage() {
     </div>
   )
 }
+

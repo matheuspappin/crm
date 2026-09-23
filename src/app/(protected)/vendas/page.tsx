@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { Kanban, Users } from 'lucide-react'
 import type { Lead } from '@/types/database'
@@ -85,3 +86,4 @@ export default async function VendasPage({
     </div>
   )
 }
+

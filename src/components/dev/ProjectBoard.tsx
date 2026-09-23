@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { MonitorPlay, PenTool, ExternalLink, CheckCircle2, ChevronRight, Briefcase, Clock, AlertTriangle, Send } from 'lucide-react'
 import type { Project, ProjectStatus } from '@/types/database'

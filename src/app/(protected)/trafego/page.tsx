@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { Target, DollarSign, Users, TrendingUp, TrendingDown } from 'lucide-react'
 import { formatCurrency, formatPercent } from '@/lib/utils'
@@ -164,3 +165,4 @@ export default async function TrafegoPage() {
     </div>
   )
 }
+
