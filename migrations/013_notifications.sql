@@ -176,7 +176,7 @@ RETURNS TRIGGER AS $$
 DECLARE
     v_owner_id UUID;
 BEGIN
-    IF NEW.status = 'won' AND OLD.status IS DISTINCT FROM 'won' THEN
+    IF NEW.status = 'fechado' AND OLD.status IS DISTINCT FROM 'fechado' THEN
         FOR v_owner_id IN SELECT id FROM public.users WHERE role = 'owner'
         LOOP
             INSERT INTO public.notifications (user_id, title, message, type, link, related_entity_type, related_entity_id)

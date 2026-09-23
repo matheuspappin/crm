@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import {
   DndContext,
   DragOverlay,
-  closestCorners,
+  closestCenter,
   KeyboardSensor,
   PointerSensor,
   MouseSensor,
@@ -299,6 +299,7 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
         error.details || 'No details',
         error
       )
+      alert("Erro ao salvar no banco: " + (error.message || "Verifique se a coluna board_order existe no banco."));
       // Revert on error
       setLeads(leads)
     }
@@ -348,7 +349,7 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
       <DndContext
         id="kanban-board-dnd-context"
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >

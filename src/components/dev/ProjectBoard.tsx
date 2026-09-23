@@ -26,6 +26,27 @@ export function ProjectBoard({ initialProjects, devs, viewerRole = 'dev' }: Proj
   const supabase = createClient()
   const router = useRouter()
 
+  useEffect(() => {
+    setProjects(initialProjects)
+  }, [initialProjects])
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('projects-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'projects' },
+        () => {
+          router.refresh()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, router])
+
   // Formulário temporário para edição
   const [form, setForm] = useState({
     figma_url: '',
