@@ -1,16 +1,17 @@
 'use client'
 
 import Link from 'next/link'
-import { Kanban, Users } from 'lucide-react'
+import { Kanban, Users, MonitorPlay } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface VendasTabsProps {
-  activeTab: 'kanban' | 'clientes'
+  activeTab: 'kanban' | 'clientes' | 'projetos'
   kanbanCount: number
   clientsCount: number
+  projectsCount?: number
 }
 
-export function VendasTabs({ activeTab, kanbanCount, clientsCount }: VendasTabsProps) {
+export function VendasTabs({ activeTab, kanbanCount, clientsCount, projectsCount = 0 }: VendasTabsProps) {
   const tabs = [
     {
       key: 'kanban',
@@ -26,10 +27,17 @@ export function VendasTabs({ activeTab, kanbanCount, clientsCount }: VendasTabsP
       icon: Users,
       count: clientsCount,
     },
+    {
+      key: 'projetos',
+      href: '/vendas/projetos',
+      label: 'Projetos',
+      icon: MonitorPlay,
+      count: projectsCount,
+    },
   ]
 
   return (
-    <div className="flex items-center gap-1 border-b border-border">
+    <div className="flex items-center gap-1 border-b border-border overflow-x-auto custom-scrollbar">
       {tabs.map((tab) => {
         const Icon = tab.icon
         const isActive = activeTab === tab.key
@@ -38,7 +46,7 @@ export function VendasTabs({ activeTab, kanbanCount, clientsCount }: VendasTabsP
             key={tab.key}
             href={tab.href}
             className={cn(
-              'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px',
+              'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px whitespace-nowrap',
               isActive
                 ? 'border-foreground text-foreground'
                 : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'

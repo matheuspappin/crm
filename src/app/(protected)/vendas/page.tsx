@@ -16,7 +16,7 @@ export default async function VendasPage({
 
   const supabase = await createClient()
 
-  const [{ data: activeLeads }, { data: closedLeads }, { data: sellers }] = await Promise.all([
+  const [{ data: activeLeads }, { data: closedLeads }, { data: sellers }, { count: projectsCount }] = await Promise.all([
     // Leads ativos para o Kanban (exclui fechado e perdido)
     supabase
       .from('leads')
@@ -36,6 +36,12 @@ export default async function VendasPage({
       .from('users')
       .select('id, name')
       .in('role', ['vendas', 'owner']),
+      
+    // Count active projects
+    supabase
+      .from('projects')
+      .select('*', { count: 'exact', head: true })
+      .neq('status', 'entregue'),
   ])
 
   const activeLeadsData = ((activeLeads ?? []) as unknown as Lead[])
@@ -65,6 +71,7 @@ export default async function VendasPage({
         activeTab={activeTab}
         kanbanCount={activeLeadsData.length}
         clientsCount={closedLeadsData.length}
+        projectsCount={projectsCount || 0}
       />
 
       {/* Content */}

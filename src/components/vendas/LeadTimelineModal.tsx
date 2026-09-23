@@ -21,6 +21,9 @@ export function LeadTimelineModal({ lead, isOpen, onClose }: LeadTimelineModalPr
   const [newNote, setNewNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [generatingContract, setGeneratingContract] = useState(false)
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
+  const [salespeople, setSalespeople] = useState<{id: string, name: string}[]>([])
+  const [assigning, setAssigning] = useState(false)
   
   const [isEditingValue, setIsEditingValue] = useState(false)
   const [editValue, setEditValue] = useState(lead.value?.toString() || '0')
@@ -32,8 +35,36 @@ export function LeadTimelineModal({ lead, isOpen, onClose }: LeadTimelineModalPr
   useEffect(() => {
     if (isOpen) {
       fetchInteractions()
+      fetchUserData()
     }
   }, [isOpen, lead.id])
+
+  async function fetchUserData() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: userRow } = await (supabase as any).from('users').select('role').eq('id', user.id).single()
+      if (userRow) {
+        setCurrentUserRole(userRow.role)
+        if (userRow.role === 'owner') {
+          const { data: sales } = await (supabase as any).from('users').select('id, name').eq('role', 'vendas').order('name')
+          if (sales) setSalespeople(sales)
+        }
+      }
+    }
+  }
+
+  async function handleAssign(userId: string) {
+    if (!userId) return
+    setAssigning(true)
+    const { error } = await (supabase as any).from('leads').update({ assigned_to: userId }).eq('id', lead.id)
+    if (!error) {
+      lead.assigned_to = userId
+      router.refresh()
+    } else {
+      alert('Erro ao atribuir: ' + error.message)
+    }
+    setAssigning(false)
+  }
 
   async function fetchInteractions() {
     setLoading(true)
@@ -235,6 +266,27 @@ export function LeadTimelineModal({ lead, isOpen, onClose }: LeadTimelineModalPr
                   <span className="badge-status bg-foreground/10 text-foreground border border-border/40 capitalize">
                     {lead.status}
                   </span>
+                </div>
+
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Responsável</p>
+                  {currentUserRole === 'owner' ? (
+                    <select
+                      value={lead.assigned_to || ''}
+                      onChange={(e) => handleAssign(e.target.value)}
+                      disabled={assigning}
+                      className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground"
+                    >
+                      <option value="">Não atribuído</option>
+                      {salespeople.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-sm font-medium text-foreground">
+                      {lead.assigned_to ? 'Atribuído a um vendedor' : 'Não atribuído'}
+                    </p>
+                  )}
                 </div>
 
                 {lead.company_name && (

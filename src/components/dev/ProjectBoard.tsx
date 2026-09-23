@@ -15,9 +15,10 @@ interface Seller {
 interface ProjectBoardProps {
   initialProjects: Project[]
   devs: Seller[]
+  viewerRole?: 'dev' | 'vendas' | 'owner'
 }
 
-export function ProjectBoard({ initialProjects, devs }: ProjectBoardProps) {
+export function ProjectBoard({ initialProjects, devs, viewerRole = 'dev' }: ProjectBoardProps) {
   const [projects, setProjects] = useState<Project[]>(initialProjects)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [reviewModalId, setReviewModalId] = useState<string | null>(null)
@@ -42,6 +43,8 @@ export function ProjectBoard({ initialProjects, devs }: ProjectBoardProps) {
   }
 
   async function handleSave(id: string) {
+    const prevProject = projects.find(p => p.id === id)
+
     const { error } = await (supabase as any)
       .from('projects')
       .update({
@@ -52,6 +55,27 @@ export function ProjectBoard({ initialProjects, devs }: ProjectBoardProps) {
       .eq('id', id)
 
     if (!error) {
+      // Registrar alteração de link na linha do tempo do negócio se houve mudança
+      if (prevProject && (prevProject.figma_url !== form.figma_url || prevProject.prod_url !== form.prod_url)) {
+        let note = 'Links do projeto atualizados pelo desenvolvedor.'
+        if (form.prod_url && prevProject.prod_url !== form.prod_url) {
+          note += `\n🔗 Link de Teste/Produção: ${form.prod_url}`
+        }
+        if (form.figma_url && prevProject.figma_url !== form.figma_url) {
+          note += `\n🎨 Design (Figma): ${form.figma_url}`
+        }
+        
+        const { data: authData } = await supabase.auth.getUser()
+        if (authData?.user) {
+          await (supabase as any).from('interactions').insert({
+            lead_id: prevProject.lead_id,
+            type: 'note',
+            notes: note,
+            created_by: authData.user.id
+          })
+        }
+      }
+
       setProjects(prev => prev.map(p => p.id === id ? { ...p, ...form } : p))
       setEditingId(null)
       router.refresh()
@@ -75,6 +99,21 @@ export function ProjectBoard({ initialProjects, devs }: ProjectBoardProps) {
       .eq('id', id)
 
     if (!error) {
+      if (newStatus === 'revisao_solicitada' && notes) {
+        const project = projects.find(p => p.id === id)
+        if (project) {
+          const { data: authData } = await supabase.auth.getUser()
+          if (authData?.user) {
+            await (supabase as any).from('interactions').insert({
+              lead_id: project.lead_id,
+              type: 'note',
+              notes: `🛑 Revisão Solicitada:\n${notes}`,
+              created_by: authData.user.id
+            })
+          }
+        }
+      }
+
       setProjects(prev => prev.map(p => p.id === id ? { ...p, status: newStatus, revision_notes: updatePayload.revision_notes } : p))
       setReviewModalId(null)
       setRevisionNotes('')
@@ -117,7 +156,7 @@ export function ProjectBoard({ initialProjects, devs }: ProjectBoardProps) {
                 )}
                 {project.status === 'revisao_solicitada' && (
                   <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-md bg-pink-500/20 text-pink-500">
-                    <AlertTriangle className="w-3 h-3" /> Revisão
+                    <AlertTriangle className="w-3 h-3" /> Aguardando Dev
                   </span>
                 )}
                 {project.status === 'em_desenvolvimento' && (
@@ -214,7 +253,7 @@ export function ProjectBoard({ initialProjects, devs }: ProjectBoardProps) {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  {(project.status === 'em_desenvolvimento' || project.status === 'revisao_solicitada') && (
+                  {viewerRole === 'dev' && (project.status === 'em_desenvolvimento' || project.status === 'revisao_solicitada') && (
                     <button 
                       onClick={() => handleStatusChange(project.id, 'aguardando_aprovacao')} 
                       className="flex items-center gap-1.5 text-xs font-semibold bg-amber-500/10 text-amber-500 px-3 py-1.5 rounded-lg hover:bg-amber-500/20 transition-colors"
@@ -223,7 +262,7 @@ export function ProjectBoard({ initialProjects, devs }: ProjectBoardProps) {
                     </button>
                   )}
 
-                  {project.status === 'aguardando_aprovacao' && (
+                  {viewerRole !== 'dev' && project.status === 'aguardando_aprovacao' && (
                     <>
                       <button 
                         onClick={() => setReviewModalId(project.id)} 

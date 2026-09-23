@@ -10,7 +10,7 @@ export default async function DevPage() {
   const [{ data: projects }, { data: devs }] = await Promise.all([
     supabase
       .from('projects')
-      .select('*, lead:leads(*), assigned_dev_user:users!assigned_dev(name, email)')
+      .select('*, lead:leads(*), assigned_dev_user:users!projects_assigned_dev_fkey(name, email)')
       .order('created_at', { ascending: false }),
     supabase
       .from('users')
@@ -68,7 +68,7 @@ export default async function DevPage() {
       </div>
 
       {/* Projetos */}
-      <ProjectBoard initialProjects={projectsData} devs={devsData} />
+      <ProjectBoard initialProjects={projectsData} devs={devsData} viewerRole="dev" />
     </div>
   )
 }

@@ -6,10 +6,11 @@ import { createClient } from '@/lib/supabase/client'
 import type { User } from '@/types/database'
 import { NAV_ITEMS } from '@/lib/nav'
 import {
-  Kanban, BarChart3, Code2, Crown, LogOut, Zap, Bell,
+  Kanban, BarChart3, Code2, Crown, LogOut, Zap,
   ChevronRight, BookOpen, Briefcase, Package, Trophy, Target, Users, type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { NotificationBell } from './NotificationBell'
 
 // Mapa de iconName → componente Lucide (client-side only)
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -106,14 +107,8 @@ export default function Sidebar({ user, allowedHrefs, onNavigate, onClose }: Sid
         })}
       </nav>
 
-      {/* Notificações (placeholder) */}
-      <button className="sidebar-link mb-1">
-        <Bell className="w-4 h-4" />
-        <span>Alertas</span>
-        <span className="ml-auto inline-flex items-center justify-center w-4 h-4 rounded-full bg-red-500 text-[9px] font-bold text-background">
-          3
-        </span>
-      </button>
+      {/* Notificações */}
+      <NotificationBell userId={user.id} />
 
       {/* User info + Logout */}
       <div className="border-t border-border pt-4 mt-2">

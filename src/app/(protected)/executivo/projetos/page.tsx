@@ -31,7 +31,7 @@ export default async function ProjetosPage() {
       .select(`
         *,
         lead:leads!lead_id(name, company_name, value, service_type, contact),
-        assigned_dev_user:users!assigned_dev(name),
+        assigned_dev_user:users!projects_assigned_dev_fkey(name),
         deleted_by_user:users!deleted_by(name)
       `)
       .order('created_at', { ascending: false }),

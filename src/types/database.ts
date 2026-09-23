@@ -11,6 +11,7 @@ export type ProductCategory = 'tripwire' | 'saas' | 'service' | 'hardware'
 export type SubscriptionStatus = 'active' | 'canceled' | 'trial' | 'paused'
 export type GoalPeriod = 'daily' | 'weekly' | 'monthly'
 export type GoalMetric = 'calls_made' | 'meetings_booked' | 'deals_closed' | 'revenue_generated' | 'leads_contacted'
+export type NotificationType = 'info' | 'success' | 'warning' | 'error'
 
 export type LogEvent =
   | 'webhook_received'
@@ -270,6 +271,19 @@ export interface UserGoalProgress {
   completed_at: string | null
 }
 
+export interface Notification {
+  id: string
+  user_id: string
+  title: string
+  message: string
+  type: NotificationType
+  is_read: boolean
+  link: string | null
+  related_entity_type: string | null
+  related_entity_id: string | null
+  created_at: string
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -287,6 +301,7 @@ export type Database = {
       gamification_profiles: { Row: GamificationProfile; Insert: Omit<GamificationProfile, 'created_at' | 'updated_at'>; Update: Partial<GamificationProfile>; Relationships: any[] }
       gamification_goals: { Row: GamificationGoal; Insert: Omit<GamificationGoal, 'id' | 'created_at'>; Update: Partial<GamificationGoal>; Relationships: any[] }
       user_goal_progress: { Row: UserGoalProgress; Insert: Omit<UserGoalProgress, 'id' | 'completed_at'>; Update: Partial<UserGoalProgress>; Relationships: any[] }
+      notifications: { Row: Notification; Insert: Omit<Notification, 'id' | 'created_at'>; Update: Partial<Notification>; Relationships: any[] }
     }
     Views: {
       vw_executive_dashboard: { Row: ExecutiveDashboard }

@@ -192,8 +192,6 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
     const leadId = active.id as string
     
     // Determine the target status based on what was dropped over.
-    // If dropped over a column area, over.id is the status.
-    // If dropped over another card, over.id is the other card's ID.
     const isColumn = COLUMNS.some(c => c.key === over.id)
     const targetStatus = isColumn 
       ? (over.id as LeadStatus) 
@@ -203,43 +201,82 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
     if (!leadToMove || !targetStatus) return
 
     const isSameColumn = leadToMove.status === targetStatus
-    const activeIndex = leads.findIndex((l) => l.id === active.id)
-    const overIndex = leads.findIndex((l) => l.id === over.id)
-
-    // Cancel if no status change and not dropped over another card
-    if (isSameColumn && (isColumn || overIndex === -1)) return
-
-    // Calculate array after move
-    let nextLeads = [...leads]
-    if (!isSameColumn) {
-      nextLeads = nextLeads.map((l) =>
-        l.id === leadId ? { ...l, status: targetStatus, last_moved_at: new Date().toISOString() } : l
-      )
-    }
     
-    if (!isColumn && activeIndex !== -1 && overIndex !== -1) {
-      nextLeads = arrayMove(nextLeads, activeIndex, overIndex)
-    }
+    if (active.id === over.id) return // Dropped in exactly the same spot
 
-    // Calculate new board_order
-    const targetColumnLeads = nextLeads.filter(l => l.status === targetStatus)
-    const newIndexInColumn = targetColumnLeads.findIndex(l => l.id === leadId)
-    
+    // Get the sorted leads for the target column
+    let targetColumnLeads = leads
+      .filter((l) => l.status === targetStatus)
+      .sort((a, b) => (a.board_order || 0) - (b.board_order || 0))
+
     let newOrder = 0
-    if (targetColumnLeads.length === 1) {
-      newOrder = 1024
-    } else if (newIndexInColumn === 0) {
-      newOrder = (targetColumnLeads[1].board_order || 0) - 1024
-    } else if (newIndexInColumn === targetColumnLeads.length - 1) {
-      newOrder = (targetColumnLeads[targetColumnLeads.length - 2].board_order || 0) + 1024
+
+    if (isSameColumn) {
+      const activeIndex = targetColumnLeads.findIndex(l => l.id === active.id)
+      let overIndex = targetColumnLeads.findIndex(l => l.id === over.id)
+      
+      if (isColumn) {
+        // Dropped on the column area itself. Move to the end.
+        overIndex = targetColumnLeads.length - 1
+      }
+      
+      if (activeIndex === overIndex || activeIndex === -1 || overIndex === -1) return
+      
+      targetColumnLeads = arrayMove(targetColumnLeads, activeIndex, overIndex)
+      const newIndex = targetColumnLeads.findIndex(l => l.id === leadId)
+      
+      if (targetColumnLeads.length === 1) {
+        newOrder = 1024
+      } else if (newIndex === 0) {
+        newOrder = (targetColumnLeads[1].board_order || 0) - 1024
+      } else if (newIndex === targetColumnLeads.length - 1) {
+        newOrder = (targetColumnLeads[targetColumnLeads.length - 2].board_order || 0) + 1024
+      } else {
+        const prevOrder = targetColumnLeads[newIndex - 1].board_order || 0
+        const nextOrder = targetColumnLeads[newIndex + 1].board_order || 0
+        newOrder = (prevOrder + nextOrder) / 2
+      }
     } else {
-      const prevOrder = targetColumnLeads[newIndexInColumn - 1].board_order || 0
-      const nextOrder = targetColumnLeads[newIndexInColumn + 1].board_order || 0
-      newOrder = (prevOrder + nextOrder) / 2
+      let overIndex = targetColumnLeads.findIndex(l => l.id === over.id)
+      
+      if (isColumn || overIndex === -1) {
+        // Put at the bottom of the new column
+        if (targetColumnLeads.length === 0) {
+          newOrder = 1024
+        } else {
+          newOrder = (targetColumnLeads[targetColumnLeads.length - 1].board_order || 0) + 1024
+        }
+      } else {
+        // Insert at the specific position
+        const activeLeadInTarget = { ...leadToMove, status: targetStatus, board_order: 0 }
+        targetColumnLeads.splice(overIndex, 0, activeLeadInTarget)
+        
+        const newIndex = overIndex
+        if (targetColumnLeads.length === 1) {
+          newOrder = 1024
+        } else if (newIndex === 0) {
+          newOrder = (targetColumnLeads[1].board_order || 0) - 1024
+        } else if (newIndex === targetColumnLeads.length - 1) {
+          newOrder = (targetColumnLeads[targetColumnLeads.length - 2].board_order || 0) + 1024
+        } else {
+          const prevOrder = targetColumnLeads[newIndex - 1].board_order || 0
+          const nextOrder = targetColumnLeads[newIndex + 1].board_order || 0
+          newOrder = (prevOrder + nextOrder) / 2
+        }
+      }
     }
 
     // Apply the order locally
-    nextLeads = nextLeads.map((l) => l.id === leadId ? { ...l, board_order: newOrder } : l)
+    const nextLeads = leads.map((l) => 
+      l.id === leadId 
+        ? { 
+            ...l, 
+            status: targetStatus, 
+            board_order: newOrder,
+            last_moved_at: !isSameColumn ? new Date().toISOString() : l.last_moved_at 
+          } 
+        : l
+    )
 
     // Optimistic UI update
     setLeads(nextLeads)
@@ -271,7 +308,9 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
     return (
       <div className="flex gap-6 overflow-x-auto pb-4 h-[calc(100vh-140px)] items-start">
         {COLUMNS.map((col) => {
-          const columnLeads = leads.filter((l) => l.status === col.key)
+          const columnLeads = leads
+            .filter((l) => l.status === col.key)
+            .sort((a, b) => (a.board_order || 0) - (b.board_order || 0))
           const columnTotal = columnLeads.reduce((sum, l) => sum + (l.value || 0), 0)
 
           return (
@@ -315,7 +354,9 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
       >
         <div className="flex gap-6 overflow-x-auto pb-4 h-[calc(100vh-140px)] items-start">
           {COLUMNS.map((col) => {
-            const columnLeads = leads.filter((l) => l.status === col.key)
+            const columnLeads = leads
+              .filter((l) => l.status === col.key)
+              .sort((a, b) => (a.board_order || 0) - (b.board_order || 0))
             const columnTotal = columnLeads.reduce((sum, l) => sum + (l.value || 0), 0)
 
             return (

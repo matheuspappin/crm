@@ -32,11 +32,16 @@ export default function LoginPage() {
 
     // O middleware redirecionará para o painel correto baseado no role
     if (data.user) {
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('role')
         .eq('id', data.user.id)
         .single()
+
+      if (profileError) {
+        console.error('Profile fetch error:', profileError)
+        // Fallback to /vendas if profile fails, let middleware handle actual permissions
+      }
 
       const routes: Record<string, string> = {
         vendas: '/vendas',
@@ -45,7 +50,10 @@ export default function LoginPage() {
         owner: '/executivo',
       }
       const typedProfile = profile as { role: string } | null
-      router.push(routes[typedProfile?.role ?? 'vendas'] ?? '/vendas')
+      const targetRoute = routes[typedProfile?.role ?? 'vendas'] ?? '/vendas'
+      
+      // Use window.location.href for a hard navigation to clear the react state and ensure the new layout mounts fully without client router hanging
+      window.location.href = targetRoute
     }
   }
 
