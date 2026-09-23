@@ -224,7 +224,10 @@ export function ProjectBoard({ initialProjects, devs, viewerRole = 'dev' }: Proj
                     <label className="block text-xs font-semibold text-muted-foreground mb-1">Dev Responsável</label>
                     <select 
                       value={form.assigned_dev} onChange={e => setForm({...form, assigned_dev: e.target.value})}
-                      className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground"
+                      disabled={!!project.assigned_dev && viewerRole !== 'owner'}
+                      className={cn("w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground", 
+                        !!project.assigned_dev && viewerRole !== 'owner' ? "opacity-60 cursor-not-allowed" : ""
+                      )}
                     >
                       <option value="">Nenhum</option>
                       {devs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
