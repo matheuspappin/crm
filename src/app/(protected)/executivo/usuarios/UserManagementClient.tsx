@@ -5,7 +5,16 @@ import { Shield, Plus, Copy, Check } from "lucide-react";
 
 type Role = "vendas" | "trafego" | "dev" | "owner";
 
-export function UserManagementClient() {
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  created_at: string;
+};
+
+export function UserManagementClient({ initialUsers }: { initialUsers: User[] }) {
+  const [users, setUsers] = useState<User[]>(initialUsers || []);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<Role>("vendas");
@@ -39,6 +48,14 @@ export function UserManagementClient() {
         email: data.user.email,
         password: data.generatedPassword,
       });
+
+      setUsers(prev => [{
+        id: data.user.id,
+        name: data.user.name || name,
+        email: data.user.email,
+        role: data.user.role || role,
+        created_at: new Date().toISOString()
+      }, ...prev]);
       
       setName("");
       setEmail("");
@@ -171,6 +188,47 @@ export function UserManagementClient() {
           </div>
         </div>
       )}
+
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 overflow-hidden">
+        <h2 className="text-lg font-bold text-white mb-4">Usuários Cadastrados</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm text-zinc-400">
+            <thead className="bg-zinc-800/50 text-zinc-300">
+              <tr>
+                <th className="px-4 py-3 rounded-tl-lg font-medium">Nome</th>
+                <th className="px-4 py-3 font-medium">E-mail</th>
+                <th className="px-4 py-3 font-medium">Cargo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map(u => (
+                <tr key={u.id} className="border-t border-zinc-800/50">
+                  <td className="px-4 py-3 font-medium text-zinc-200">{u.name}</td>
+                  <td className="px-4 py-3">{u.email}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+                      u.role === 'owner' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' :
+                      u.role === 'dev' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                      u.role === 'vendas' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                      u.role === 'trafego' ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' :
+                      'bg-zinc-500/10 text-zinc-400 border border-zinc-500/20'
+                    }`}>
+                      {u.role}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {users.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="px-4 py-8 text-center text-zinc-500">
+                    Nenhum usuário cadastrado.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
