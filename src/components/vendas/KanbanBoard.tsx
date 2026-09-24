@@ -30,6 +30,7 @@ import { Clock, Tag, Building2, User } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { LeadTimelineModal } from './LeadTimelineModal'
+import { LeadFreshnessTimer } from './LeadFreshnessTimer'
 
 const COLUMNS: { key: LeadStatus; label: string; color: string }[] = [
   { key: 'novo',       label: 'Novo Lead',   color: '#6366f1' },
@@ -105,14 +106,20 @@ function SortableLeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }
         </div>
         
         {/* Info Tags */}
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           {lead.utm_source && (
             <span className="flex items-center gap-1 text-[10px] bg-violet-500/10 text-violet-400 px-1.5 py-0.5 rounded border border-violet-500/20">
               <Tag className="w-3 h-3" />
               {lead.utm_source}
             </span>
           )}
-          <span className="flex items-center gap-1 text-[10px] bg-secondary text-[#8b8b9e] px-1.5 py-0.5 rounded border border-border">
+          {/* Timing de Geração do Lead (com semáforo de urgência) */}
+          <LeadFreshnessTimer
+            createdAt={lead.generation_created_at || lead.created_at}
+            prefix="Gerado"
+            variant="badge"
+          />
+          <span className="flex items-center gap-1 text-[10px] bg-secondary text-[#8b8b9e] px-1.5 py-0.5 rounded border border-border" title="Tempo nesta etapa do funil">
             <Clock className="w-3 h-3" />
             {timeInStage}
           </span>

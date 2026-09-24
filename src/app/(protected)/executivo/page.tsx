@@ -5,7 +5,8 @@ import {
   Clock, Target, AlertTriangle, CheckCircle2, BarChart3
 } from 'lucide-react'
 import { formatCurrency, formatPercent } from '@/lib/utils'
-import type { ExecutiveDashboard, MvMrr, MvWinRate } from '@/types/database'
+import type { ExecutiveDashboard, MvMrr, MvWinRate, NicheFunnelAnalytics } from '@/types/database'
+import { NicheIntelligenceSection } from '@/components/executivo/NicheIntelligenceSection'
 
 export default async function ExecutivoPage() {
   const supabase = await createClient()
@@ -14,15 +15,21 @@ export default async function ExecutivoPage() {
     { data: dash },
     { data: mrrHistory },
     { data: winRateHistory },
+    { data: nicheFunnel },
+    { data: siteStats },
   ] = await Promise.all([
     supabase.from('vw_executive_dashboard').select('*').single(),
     supabase.from('mv_mrr').select('*').order('month', { ascending: false }).limit(6),
     supabase.from('mv_win_rate').select('*').order('month', { ascending: false }).limit(3),
+    supabase.from('vw_niche_funnel_analytics').select('*').order('total_won_revenue', { ascending: false }),
+    (supabase as any).rpc('get_scraped_conversion_stats'),
   ])
 
   const dashboard = dash as ExecutiveDashboard | null
   const mrr = (mrrHistory ?? []) as MvMrr[]
   const winRate = (winRateHistory ?? []) as MvWinRate[]
+  const niches = (nicheFunnel ?? []) as NicheFunnelAnalytics[]
+  const scrapedStats = (siteStats ?? null) as any
 
   const metrics = [
     {
@@ -114,6 +121,11 @@ export default async function ExecutivoPage() {
             </div>
           )
         })}
+      </div>
+
+      {/* Módulo de Inteligência de Nichos & ICP Vencedor */}
+      <div className="mb-8">
+        <NicheIntelligenceSection initialNiches={niches} siteStats={scrapedStats} />
       </div>
 
       <div className="grid grid-cols-2 gap-6">

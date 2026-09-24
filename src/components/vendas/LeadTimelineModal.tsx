@@ -8,6 +8,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import type { Lead, Interaction } from '@/types/database'
 import { useRouter } from 'next/navigation'
+import { LeadFreshnessTimer } from './LeadFreshnessTimer'
 
 interface LeadTimelineModalProps {
   lead: Lead
@@ -176,12 +177,17 @@ export function LeadTimelineModal({ lead, isOpen, onClose }: LeadTimelineModalPr
             </div>
             <div>
               <h2 className="text-xl font-bold text-foreground">{lead.name}</h2>
-              <div className="flex items-center gap-3 text-sm mt-0.5">
+              <div className="flex items-center gap-3 text-sm mt-0.5 flex-wrap">
                 {lead.contact && (
                   <span className="text-muted-foreground flex items-center gap-1">
                     <Phone className="w-3.5 h-3.5" /> {lead.contact}
                   </span>
                 )}
+                <LeadFreshnessTimer
+                  createdAt={lead.generation_created_at || lead.created_at}
+                  prefix="Gerado"
+                  variant="badge"
+                />
               </div>
             </div>
           </div>
@@ -266,6 +272,15 @@ export function LeadTimelineModal({ lead, isOpen, onClose }: LeadTimelineModalPr
                   <span className="badge-status bg-foreground/10 text-foreground border border-border/40 capitalize">
                     {lead.status}
                   </span>
+                </div>
+
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Idade do Lead (Frescor)</p>
+                  <LeadFreshnessTimer
+                    createdAt={lead.generation_created_at || lead.created_at}
+                    prefix="Gerado"
+                    variant="detailed"
+                  />
                 </div>
 
                 <div>

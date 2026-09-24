@@ -61,6 +61,45 @@ interface MetaWebhookPayload {
 }
 
 // ============================================================
+// Busca dados reais do Lead (Nome, Telefone, Email) via Graph API
+// ============================================================
+async function fetchLeadFromGraphAPI(leadgenId: string) {
+  const token = process.env.META_ACCESS_TOKEN
+  if (!token) {
+    console.warn('[Meta Webhook] META_ACCESS_TOKEN não configurado. Impossível buscar dados do lead.')
+    return null
+  }
+
+  try {
+    const res = await fetch(`https://graph.facebook.com/v19.0/${leadgenId}?access_token=${token}`)
+    if (!res.ok) {
+      console.error('[Meta Webhook] Erro na Graph API:', await res.text())
+      return null
+    }
+    const data = await res.json()
+    
+    let name = ''
+    let email = ''
+    let phone = ''
+
+    if (data.field_data) {
+      for (const field of data.field_data) {
+        if (field.name === 'full_name' && field.values.length > 0) name = field.values[0]
+        if (field.name === 'first_name' && field.values.length > 0) name = field.values[0] + (name ? ' ' + name : '')
+        if (field.name === 'last_name' && field.values.length > 0) name = (name ? name + ' ' : '') + field.values[0]
+        if (field.name === 'email' && field.values.length > 0) email = field.values[0]
+        if (field.name === 'phone_number' && field.values.length > 0) phone = field.values[0]
+      }
+    }
+    
+    return { name: name.trim(), email, phone }
+  } catch (err) {
+    console.error('[Meta Webhook] Erro ao buscar dados na Graph API:', err)
+    return null
+  }
+}
+
+// ============================================================
 // GET — Verificação do webhook (Meta Webhook Handshake)
 // O Meta faz um GET com hub.challenge para validar a URL
 // ============================================================
@@ -123,17 +162,39 @@ export async function POST(request: NextRequest) {
       const cv = change.value
       
       // Monta o lead com os dados disponíveis do webhook
-      // Nota: para obter nome/telefone, você precisa buscar na Graph API usando leadgen_id
-      // Por ora, salvamos os dados de campanha disponíveis no webhook
+      // Busca dados reais na Graph API se o token estiver configurado
+      let leadName = `Lead Meta #${cv.leadgen_id.slice(-6)}`
+      let leadContact = null
+      
+      const graphData = await fetchLeadFromGraphAPI(cv.leadgen_id)
+      let additionalNotes = {}
+      
+      if (graphData) {
+        if (graphData.name) leadName = graphData.name
+        
+        // Combina telefone e email no campo contact, ou usa apenas o que estiver disponível
+        const contactParts = []
+        if (graphData.phone) contactParts.push(graphData.phone)
+        if (graphData.email) contactParts.push(graphData.email)
+        
+        if (contactParts.length > 0) {
+          leadContact = contactParts.join(' - ')
+        }
+        
+        if (graphData.email) additionalNotes = { ...additionalNotes, email: graphData.email }
+        if (graphData.phone) additionalNotes = { ...additionalNotes, phone: graphData.phone }
+      }
+
       const leadData = {
-        name: `Lead Meta #${cv.leadgen_id.slice(-6)}`, // Atualizado via Graph API depois
-        contact: null,
+        name: leadName,
+        contact: leadContact,
         status: 'novo' as const,
         utm_source: 'facebook',
         utm_medium: 'paid',
         utm_campaign: cv.campaign_name ?? cv.campaign_id,
         utm_content: cv.ad_name ?? cv.ad_id,
         notes: JSON.stringify({
+          ...additionalNotes,
           leadgen_id: cv.leadgen_id,
           form_id: cv.form_id,
           page_id: cv.page_id,

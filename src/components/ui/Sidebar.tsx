@@ -7,7 +7,7 @@ import type { User } from '@/types/database'
 import { NAV_ITEMS } from '@/lib/nav'
 import {
   Kanban, BarChart3, Code2, Crown, LogOut, Zap,
-  ChevronRight, BookOpen, Briefcase, Package, Trophy, Target, Users, type LucideIcon,
+  ChevronRight, BookOpen, Briefcase, Package, Trophy, Target, Users, Send, Wallet, type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NotificationBell } from './NotificationBell'
@@ -24,6 +24,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Trophy,
   Target,
   Users,
+  Send,
+  Wallet,
 }
 
 interface SidebarProps {

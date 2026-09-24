@@ -333,6 +333,19 @@ CREATE POLICY "projects: vendas read own active"
     )
   );
 
+CREATE POLICY "projects: vendas update own active"
+  ON public.projects
+  FOR UPDATE
+  USING (
+    public.current_user_role() = 'vendas'
+    AND deleted_at IS NULL
+    AND EXISTS (
+      SELECT 1 FROM public.leads l
+      WHERE l.id = lead_id
+      AND l.assigned_to = auth.uid()
+    )
+  );
+
 -- Tráfego: filtra deletados
 DROP POLICY IF EXISTS "projects: trafego read only" ON public.projects;
 

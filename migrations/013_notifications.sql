@@ -35,6 +35,7 @@ DECLARE
     v_lead_name TEXT;
     v_assigned_vendas UUID;
     v_assigned_dev UUID;
+    v_owner_id UUID;
 BEGIN
     -- Obter o nome do lead e o vendedor responsável
     SELECT name, assigned_to INTO v_lead_name, v_assigned_vendas
@@ -75,20 +76,26 @@ BEGIN
         END IF;
     END IF;
 
-    -- Se mudou para entregue (Vendedor aprovou)
+    -- Se mudou para entregue (Projeto concluído)
     IF NEW.status = 'entregue' AND OLD.status IS DISTINCT FROM 'entregue' THEN
+        -- 1. Notifica o Dev
         IF v_assigned_dev IS NOT NULL THEN
             INSERT INTO public.notifications (user_id, title, message, type, link, related_entity_type, related_entity_id)
-            VALUES (
-                v_assigned_dev,
-                'Projeto Aprovado!',
-                'O projeto ' || v_lead_name || ' foi aprovado pelo vendedor/cliente e finalizado.',
-                'success',
-                '/dev',
-                'project',
-                NEW.id
-            );
+            VALUES (v_assigned_dev, 'Projeto Aprovado e Finalizado! 🎉', 'O projeto ' || v_lead_name || ' foi concluído com sucesso.', 'success', '/dev', 'project', NEW.id);
         END IF;
+        
+        -- 2. Notifica o Vendedor responsável
+        IF v_assigned_vendas IS NOT NULL THEN
+            INSERT INTO public.notifications (user_id, title, message, type, link, related_entity_type, related_entity_id)
+            VALUES (v_assigned_vendas, 'Projeto Entregue! 🎉', 'O projeto do cliente ' || v_lead_name || ' foi marcado como concluído.', 'success', '/vendas/projetos', 'project', NEW.id);
+        END IF;
+
+        -- 3. Notifica todos os Owners
+        FOR v_owner_id IN SELECT id FROM public.users WHERE role = 'owner'
+        LOOP
+            INSERT INTO public.notifications (user_id, title, message, type, link, related_entity_type, related_entity_id)
+            VALUES (v_owner_id, 'Projeto Concluído! 🏆', 'O projeto ' || v_lead_name || ' foi finalizado e entregue.', 'success', '/executivo/projetos', 'project', NEW.id);
+        END LOOP;
     END IF;
 
     RETURN NEW;

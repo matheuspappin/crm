@@ -17,7 +17,7 @@ export default async function VendasPage({
 
   const supabase = await createClient()
 
-  const [{ data: activeLeads }, { data: closedLeads }, { data: sellers }, { count: projectsCount }] = await Promise.all([
+  const [{ data: activeLeads }, { data: closedLeads }, { data: sellers }, { count: projectsCount }, { count: lotesCount }] = await Promise.all([
     // Leads ativos para o Kanban (exclui fechado e perdido)
     supabase
       .from('leads')
@@ -43,6 +43,11 @@ export default async function VendasPage({
       .from('projects')
       .select('*', { count: 'exact', head: true })
       .neq('status', 'entregue'),
+
+    // Count lead packages
+    (supabase as any)
+      .from('scraped_searches')
+      .select('*', { count: 'exact', head: true }),
   ])
 
   const activeLeadsData = ((activeLeads ?? []) as unknown as Lead[])
@@ -73,6 +78,7 @@ export default async function VendasPage({
         kanbanCount={activeLeadsData.length}
         clientsCount={closedLeadsData.length}
         projectsCount={projectsCount || 0}
+        lotesCount={lotesCount || 0}
       />
 
       {/* Content */}

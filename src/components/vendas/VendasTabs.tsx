@@ -1,17 +1,18 @@
 'use client'
 
 import Link from 'next/link'
-import { Kanban, Users, MonitorPlay } from 'lucide-react'
+import { Kanban, Users, MonitorPlay, Send, Layers } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface VendasTabsProps {
-  activeTab: 'kanban' | 'clientes' | 'projetos'
+  activeTab: 'kanban' | 'campanhas' | 'clientes' | 'projetos' | 'lotes'
   kanbanCount: number
   clientsCount: number
   projectsCount?: number
+  lotesCount?: number
 }
 
-export function VendasTabs({ activeTab, kanbanCount, clientsCount, projectsCount = 0 }: VendasTabsProps) {
+export function VendasTabs({ activeTab, kanbanCount, clientsCount, projectsCount = 0, lotesCount }: VendasTabsProps) {
   const tabs = [
     {
       key: 'kanban',
@@ -19,6 +20,20 @@ export function VendasTabs({ activeTab, kanbanCount, clientsCount, projectsCount
       label: 'Funil Kanban',
       icon: Kanban,
       count: kanbanCount,
+    },
+    {
+      key: 'campanhas',
+      href: '/vendas/campanhas',
+      label: 'Máquina de Vendas',
+      icon: Send,
+      count: undefined,
+    },
+    {
+      key: 'lotes',
+      href: '/vendas/lotes',
+      label: 'Gestor de Lotes',
+      icon: Layers,
+      count: lotesCount,
     },
     {
       key: 'clientes',
@@ -54,12 +69,14 @@ export function VendasTabs({ activeTab, kanbanCount, clientsCount, projectsCount
           >
             <Icon className="w-4 h-4" />
             {tab.label}
-            <span className={cn(
-              'text-[10px] font-semibold px-1.5 py-0.5 rounded-full',
-              isActive ? 'bg-foreground/10 text-foreground' : 'bg-secondary text-muted-foreground'
-            )}>
-              {tab.count}
-            </span>
+            {tab.count !== undefined && (
+              <span className={cn(
+                'text-[10px] font-semibold px-1.5 py-0.5 rounded-full',
+                isActive ? 'bg-foreground/10 text-foreground' : 'bg-secondary text-muted-foreground'
+              )}>
+                {tab.count}
+              </span>
+            )}
           </Link>
         )
       })}

@@ -42,6 +42,13 @@ export interface Lead {
   service_type: ServiceType
   status: LeadStatus
   value: number
+  niche: string
+  scraped_lead_id?: string | null
+  campaign_id?: string | null
+  loss_reason?: string | null
+  dispatched_at?: string | null
+  replied_at?: string | null
+  reply_sentiment?: 'positive' | 'neutral' | 'objection' | 'opt_out' | null
   utm_source: string | null
   utm_medium: string | null
   utm_campaign: string | null
@@ -52,6 +59,7 @@ export interface Lead {
   last_moved_at: string
   board_order: number
   notes: string | null
+  generation_created_at?: string | null
   created_at: string
   updated_at: string
   // Joins opcionais
@@ -284,27 +292,117 @@ export interface Notification {
   created_at: string
 }
 
+export interface OutboundCampaign {
+  id: string
+  name: string
+  niche: string
+  city: string | null
+  channel: string
+  target_script: string | null
+  followup_script?: string | null
+  timeout_hours?: number
+  status: 'draft' | 'active' | 'paused' | 'completed'
+  total_dispatches: number
+  total_replies: number
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface OutboundDispatch {
+  id: string
+  campaign_id: string
+  scraped_lead_id: string | null
+  lead_id: string | null
+  company_name: string | null
+  phone: string
+  status: 'queued' | 'sent' | 'delivered' | 'failed'
+  sent_at: string
+  replied: boolean
+  replied_at: string | null
+  reply_sentiment: 'positive' | 'neutral' | 'objection' | 'opt_out' | null
+  followup_sent?: boolean
+  followup_sent_at?: string | null
+  is_expired?: boolean
+  expired_at?: string | null
+  notes: string | null
+  created_at: string
+}
+
+export interface NicheFunnelAnalytics {
+  niche: string
+  total_dispatched: number
+  total_replied: number
+  reply_rate_pct: number
+  total_leads_entered: number
+  total_meetings: number
+  total_won: number
+  total_lost: number
+  close_rate_pct: number
+  total_won_revenue: number
+  avg_ticket_won: number
+}
+
+export interface ScrapedSearch {
+  id: string
+  user_id: string
+  query: string
+  city: string
+  source: string | null
+  total_leads: number
+  created_at: string
+}
+
+export interface ScrapedLead {
+  id: string
+  search_id: string | null
+  user_id: string
+  place_id: string | null
+  name: string
+  address: string | null
+  phone: string | null
+  website: string | null
+  rating: number | null
+  user_ratings: number | null
+  maps_url: string | null
+  has_website: boolean | null
+  has_phone: boolean | null
+  score: number | null
+  score_reasons: any | null
+  assigned_to?: string | null
+  distributed_at?: string | null
+  distribution_status?: 'disponivel' | 'distribuido' | 'em_campanha' | 'descartado'
+  created_at: string
+  assigned_user?: User
+}
+
 export type Database = {
   public: {
     Tables: {
       users: { Row: User; Insert: Omit<User, 'created_at' | 'updated_at'>; Update: Partial<User>; Relationships: any[] }
-      leads: { Row: Lead; Insert: Omit<Lead, 'id' | 'created_at' | 'updated_at' | 'sla_alerted' | 'last_moved_at' | 'board_order'>; Update: Partial<Lead>; Relationships: any[] }
-      interactions: { Row: Interaction; Insert: Omit<Interaction, 'id' | 'created_at'>; Update: Partial<Interaction>; Relationships: any[] }
-      projects: { Row: Project; Insert: Omit<Project, 'id' | 'created_at' | 'updated_at' | 'pixel_status' | 'status' | 'revision_notes' | 'deleted_at' | 'deleted_reason' | 'deleted_notes' | 'deleted_by'>; Update: Partial<Project>; Relationships: any[] }
+      leads: { Row: Lead; Insert: Partial<Lead> & { name: string }; Update: Partial<Lead>; Relationships: any[] }
+      interactions: { Row: Interaction; Insert: Partial<Interaction> & { lead_id: string }; Update: Partial<Interaction>; Relationships: any[] }
+      projects: { Row: Project; Insert: Partial<Project> & { lead_id: string }; Update: Partial<Project>; Relationships: any[] }
       traffic_onboarding: { Row: TrafficOnboarding; Insert: Omit<TrafficOnboarding, 'id' | 'created_at' | 'updated_at' | 'is_active' | 'deleted_at' | 'deleted_reason' | 'deleted_notes' | 'deleted_by'>; Update: Partial<TrafficOnboarding>; Relationships: any[] }
       system_logs: { Row: SystemLog; Insert: Omit<SystemLog, 'id' | 'created_at'>; Update: never; Relationships: any[] }
       ad_spend: { Row: AdSpend; Insert: Omit<AdSpend, 'id' | 'created_at'>; Update: Partial<AdSpend>; Relationships: any[] }
       project_deletions: { Row: ProjectDeletion; Insert: Omit<ProjectDeletion, 'id' | 'deleted_at'>; Update: never; Relationships: any[] }
-      products: { Row: Product; Insert: Omit<Product, 'id' | 'created_at' | 'updated_at' | 'is_active'>; Update: Partial<Product>; Relationships: any[] }
-      pricing_plans: { Row: PricingPlan; Insert: Omit<PricingPlan, 'id' | 'created_at' | 'updated_at' | 'is_active'>; Update: Partial<PricingPlan>; Relationships: any[] }
-      lead_subscriptions: { Row: LeadSubscription; Insert: Omit<LeadSubscription, 'id' | 'created_at' | 'updated_at' | 'status' | 'start_date'>; Update: Partial<LeadSubscription>; Relationships: any[] }
+      products: { Row: Product; Insert: Partial<Product> & { name: string }; Update: Partial<Product>; Relationships: any[] }
+      pricing_plans: { Row: PricingPlan; Insert: Partial<PricingPlan> & { product_id: string; name: string }; Update: Partial<PricingPlan>; Relationships: any[] }
+      lead_subscriptions: { Row: LeadSubscription; Insert: Partial<LeadSubscription> & { lead_id: string; pricing_plan_id: string }; Update: Partial<LeadSubscription>; Relationships: any[] }
       gamification_profiles: { Row: GamificationProfile; Insert: Omit<GamificationProfile, 'created_at' | 'updated_at'>; Update: Partial<GamificationProfile>; Relationships: any[] }
       gamification_goals: { Row: GamificationGoal; Insert: Omit<GamificationGoal, 'id' | 'created_at'>; Update: Partial<GamificationGoal>; Relationships: any[] }
       user_goal_progress: { Row: UserGoalProgress; Insert: Omit<UserGoalProgress, 'id' | 'completed_at'>; Update: Partial<UserGoalProgress>; Relationships: any[] }
-      notifications: { Row: Notification; Insert: Omit<Notification, 'id' | 'created_at'>; Update: Partial<Notification>; Relationships: any[] }
+      notifications: { Row: Notification; Insert: Partial<Notification> & { user_id: string; title: string; message: string }; Update: Partial<Notification>; Relationships: any[] }
+      outbound_campaigns: { Row: OutboundCampaign; Insert: Partial<OutboundCampaign> & { name: string; niche: string }; Update: Partial<OutboundCampaign>; Relationships: any[] }
+      outbound_dispatches: { Row: OutboundDispatch; Insert: Partial<OutboundDispatch> & { campaign_id: string; phone: string }; Update: Partial<OutboundDispatch>; Relationships: any[] }
+      scraped_searches: { Row: ScrapedSearch; Insert: Partial<ScrapedSearch> & { query: string; city: string }; Update: Partial<ScrapedSearch>; Relationships: any[] }
+      scraped_leads: { Row: ScrapedLead; Insert: Partial<ScrapedLead> & { name: string }; Update: Partial<ScrapedLead>; Relationships: any[] }
     }
     Views: {
       vw_executive_dashboard: { Row: ExecutiveDashboard }
+      vw_niche_funnel_analytics: { Row: NicheFunnelAnalytics }
     }
   }
 }
+

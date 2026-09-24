@@ -18,6 +18,20 @@ export const NAV_ITEMS: NavItemConfig[] = [
     roles: ['vendas', 'owner'],
   },
   {
+    href: '/vendas/campanhas',
+    label: 'Máquina de Vendas',
+    description: 'Campanhas por Nicho',
+    iconName: 'Send',
+    roles: ['vendas', 'owner'],
+  },
+  {
+    href: '/executivo/carteira',
+    label: 'Carteira de Clientes',
+    description: 'LTV, MRR & Pós-Venda',
+    iconName: 'Wallet',
+    roles: ['owner', 'vendas'],
+  },
+  {
     href: '/vendas/gamificacao',
     label: 'Gamificação',
     description: 'Missões e Nível',
