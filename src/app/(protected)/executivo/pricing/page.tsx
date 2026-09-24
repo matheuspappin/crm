@@ -12,6 +12,7 @@ import {
   X
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { ExecutivoTabs } from '@/components/executivo/ExecutivoTabs'
 
 import type { Product, ProductCategory, PricingPlan } from '@/types/database'
 
@@ -151,6 +152,9 @@ export default function AdminPricingPage() {
           Novo Produto
         </button>
       </div>
+
+      {/* Navegação Executiva */}
+      <ExecutivoTabs activeTab="pricing" />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">

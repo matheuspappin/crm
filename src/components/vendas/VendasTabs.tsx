@@ -1,53 +1,52 @@
 'use client'
 
 import Link from 'next/link'
-import { Kanban, Users, MonitorPlay, Send, Layers } from 'lucide-react'
+import { Kanban, Users, Send, Layers } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface VendasTabsProps {
-  activeTab: 'kanban' | 'campanhas' | 'clientes' | 'projetos' | 'lotes'
-  kanbanCount: number
-  clientsCount: number
+  activeTab: 'lotes' | 'campanhas' | 'kanban' | 'clientes' | 'projetos'
+  kanbanCount?: number
+  clientsCount?: number
   projectsCount?: number
   lotesCount?: number
 }
 
-export function VendasTabs({ activeTab, kanbanCount, clientsCount, projectsCount = 0, lotesCount }: VendasTabsProps) {
+export function VendasTabs({
+  activeTab,
+  kanbanCount,
+  clientsCount,
+  lotesCount,
+}: VendasTabsProps) {
+  // Sequência alinhada ao fluxo real da esteira comercial de aquisição
   const tabs = [
-    {
-      key: 'kanban',
-      href: '/vendas',
-      label: 'Funil Kanban',
-      icon: Kanban,
-      count: kanbanCount,
-    },
-    {
-      key: 'campanhas',
-      href: '/vendas/campanhas',
-      label: 'Máquina de Vendas',
-      icon: Send,
-      count: undefined,
-    },
     {
       key: 'lotes',
       href: '/vendas/lotes',
-      label: 'Gestor de Lotes',
+      label: '1. Gestor de Lotes',
       icon: Layers,
       count: lotesCount,
     },
     {
-      key: 'clientes',
-      href: '/vendas?tab=clientes',
-      label: 'Clientes',
-      icon: Users,
-      count: clientsCount,
+      key: 'campanhas',
+      href: '/vendas/campanhas',
+      label: '2. Máquina de Vendas',
+      icon: Send,
+      count: undefined,
     },
     {
-      key: 'projetos',
-      href: '/vendas/projetos',
-      label: 'Projetos',
-      icon: MonitorPlay,
-      count: projectsCount,
+      key: 'kanban',
+      href: '/vendas',
+      label: '3. Funil Kanban',
+      icon: Kanban,
+      count: kanbanCount,
+    },
+    {
+      key: 'clientes',
+      href: '/vendas?tab=clientes',
+      label: '4. Clientes Fechados',
+      icon: Users,
+      count: clientsCount,
     },
   ]
 
@@ -61,19 +60,23 @@ export function VendasTabs({ activeTab, kanbanCount, clientsCount, projectsCount
             key={tab.key}
             href={tab.href}
             className={cn(
-              'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px whitespace-nowrap',
+              'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px whitespace-nowrap rounded-t-lg',
               isActive
-                ? 'border-foreground text-foreground'
-                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                ? 'border-foreground text-foreground font-semibold bg-foreground/5'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border/60 hover:bg-secondary/30'
             )}
           >
             <Icon className="w-4 h-4" />
             {tab.label}
             {tab.count !== undefined && (
-              <span className={cn(
-                'text-[10px] font-semibold px-1.5 py-0.5 rounded-full',
-                isActive ? 'bg-foreground/10 text-foreground' : 'bg-secondary text-muted-foreground'
-              )}>
+              <span
+                className={cn(
+                  'text-[10px] font-bold px-2 py-0.5 rounded-full',
+                  isActive
+                    ? 'bg-foreground/20 text-foreground'
+                    : 'bg-secondary text-muted-foreground'
+                )}
+              >
                 {tab.count}
               </span>
             )}

@@ -7,6 +7,7 @@ import {
 import { formatCurrency, formatPercent } from '@/lib/utils'
 import type { ExecutiveDashboard, MvMrr, MvWinRate, NicheFunnelAnalytics } from '@/types/database'
 import { NicheIntelligenceSection } from '@/components/executivo/NicheIntelligenceSection'
+import { ExecutivoTabs } from '@/components/executivo/ExecutivoTabs'
 
 export default async function ExecutivoPage() {
   const supabase = await createClient()
@@ -104,6 +105,9 @@ export default async function ExecutivoPage() {
           </div>
         ) : null}
       </div>
+
+      {/* Navegação Executiva */}
+      <ExecutivoTabs activeTab="dashboard" />
 
       {/* Grid de métricas */}
       <div className="grid grid-cols-3 gap-4 mb-8">

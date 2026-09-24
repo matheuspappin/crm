@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { GamificationManager, GamificationGoal } from "@/components/admin/GamificationManager";
 import { TeamPerformanceBoard, TeamProgress } from "@/components/admin/TeamPerformanceBoard";
 import { createClient } from "@/lib/supabase/client";
+import { ExecutivoTabs } from "@/components/executivo/ExecutivoTabs";
 
 interface Props {
   initialGoals: GamificationGoal[];
@@ -55,6 +56,9 @@ export function ExecutivoGamificacaoClient({ initialGoals, teamProgress }: Props
         <h1 className="text-xl font-bold text-foreground">Gamificação e Performance</h1>
         <p className="text-xs text-muted-foreground">Gerencie as metas da equipe e acompanhe os resultados em tempo real.</p>
       </div>
+
+      {/* Navegação Executiva */}
+      <ExecutivoTabs activeTab="gamificacao" />
 
       <TeamPerformanceBoard progressData={teamProgress} />
       

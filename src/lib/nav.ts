@@ -1,21 +1,32 @@
 import type { UserRole } from '@/types/database'
 
+export type NavCategory = 'comercial' | 'operacao' | 'diretoria'
+
 export interface NavItemConfig {
   href: string
   label: string
   description: string
   iconName: string
   roles: UserRole[]
+  category: NavCategory
 }
 
-// Fonte única de verdade para o nav — usada pelo server e pelo client
+export const CATEGORY_METADATA: Record<NavCategory, { label: string; badge?: string }> = {
+  comercial: { label: 'Comercial & Vendas' },
+  operacao: { label: 'Operação & Entregas' },
+  diretoria: { label: 'Diretoria & Admin' },
+}
+
+// Fonte única de verdade para o nav — estruturado nos 3 Pilares do Negócio
 export const NAV_ITEMS: NavItemConfig[] = [
+  // --- PILAR 1: COMERCIAL & VENDAS (Aquisição) ---
   {
-    href: '/vendas',
-    label: 'Comercial',
-    description: 'Funil Kanban',
-    iconName: 'Kanban',
+    href: '/vendas/lotes',
+    label: 'Gestor de Lotes',
+    description: 'Distribuição de Leads',
+    iconName: 'Layers',
     roles: ['vendas', 'owner'],
+    category: 'comercial',
   },
   {
     href: '/vendas/campanhas',
@@ -23,76 +34,107 @@ export const NAV_ITEMS: NavItemConfig[] = [
     description: 'Campanhas por Nicho',
     iconName: 'Send',
     roles: ['vendas', 'owner'],
+    category: 'comercial',
+  },
+  {
+    href: '/vendas',
+    label: 'Funil Comercial',
+    description: 'Kanban & Pipeline',
+    iconName: 'Kanban',
+    roles: ['vendas', 'owner'],
+    category: 'comercial',
+  },
+  {
+    href: '/manual',
+    label: 'Playbook de Vendas',
+    description: 'Scripts & Objeções',
+    iconName: 'BookOpen',
+    roles: ['vendas', 'owner'],
+    category: 'comercial',
+  },
+  {
+    href: '/vendas/gamificacao',
+    label: 'Minhas Metas & XP',
+    description: 'Missões & Conquistas',
+    iconName: 'Trophy',
+    roles: ['vendas'],
+    category: 'comercial',
+  },
+
+  // --- PILAR 2: OPERAÇÃO & ENTREGAS (Pós-Venda) ---
+  {
+    href: '/dev',
+    label: 'Sites & Landing Pages',
+    description: 'Fila de Desenvolvimento',
+    iconName: 'Code2',
+    roles: ['dev', 'owner'],
+    category: 'operacao',
+  },
+  {
+    href: '/trafego',
+    label: 'Gestão de Tráfego',
+    description: 'Campanhas & Anúncios',
+    iconName: 'BarChart3',
+    roles: ['trafego', 'owner'],
+    category: 'operacao',
   },
   {
     href: '/executivo/carteira',
     label: 'Carteira de Clientes',
-    description: 'LTV, MRR & Pós-Venda',
+    description: 'MRR, LTV & Pós-Venda',
     iconName: 'Wallet',
     roles: ['owner', 'vendas'],
-  },
-  {
-    href: '/vendas/gamificacao',
-    label: 'Gamificação',
-    description: 'Missões e Nível',
-    iconName: 'Trophy',
-    roles: ['vendas', 'owner'],
-  },
-  {
-    href: '/trafego',
-    label: 'Tráfego',
-    description: 'CPL & ROI',
-    iconName: 'BarChart3',
-    roles: ['trafego', 'owner'],
-  },
-  {
-    href: '/dev',
-    label: 'Engenharia',
-    description: 'Entregas & Pixels',
-    iconName: 'Code2',
-    roles: ['dev', 'owner'],
-  },
-  {
-    href: '/executivo',
-    label: 'Super Admin',
-    description: 'Visão Executiva',
-    iconName: 'Crown',
-    roles: ['owner'],
-  },
-  {
-    href: '/manual',
-    label: 'Manual Comercial',
-    description: 'Playbook de Vendas',
-    iconName: 'BookOpen',
-    roles: ['vendas', 'owner'],
+    category: 'operacao',
   },
   {
     href: '/executivo/projetos',
-    label: 'Gestão de Projetos',
+    label: 'Auditoria de Projetos',
     description: 'Encerrar & Auditar',
     iconName: 'Briefcase',
     roles: ['owner'],
+    category: 'operacao',
+  },
+
+  // --- PILAR 3: DIRETORIA & ADMIN (Gestão Estratégica) ---
+  {
+    href: '/executivo',
+    label: 'Painel Executivo',
+    description: 'Métricas & Resultados',
+    iconName: 'Crown',
+    roles: ['owner'],
+    category: 'diretoria',
+  },
+  {
+    href: '/executivo/configuracoes',
+    label: 'Automação & Bot',
+    description: 'Motor do Bot & Delay',
+    iconName: 'Bot',
+    roles: ['owner'],
+    category: 'diretoria',
   },
   {
     href: '/executivo/pricing',
-    label: 'Catálogo e Preços',
-    description: 'Gestão de Produtos',
+    label: 'Catálogo & Preços',
+    description: 'Planos & Serviços',
     iconName: 'Package',
     roles: ['owner'],
-  },
-  {
-    href: '/executivo/gamificacao',
-    label: 'Gestão Gamificação',
-    description: 'Metas e Equipe',
-    iconName: 'Target',
-    roles: ['owner'],
+    category: 'diretoria',
   },
   {
     href: '/executivo/usuarios',
-    label: 'Acessos e Equipe',
-    description: 'Criar novos logins',
+    label: 'Equipe & Acessos',
+    description: 'Usuários & Permissões',
     iconName: 'Users',
     roles: ['owner'],
+    category: 'diretoria',
+  },
+  {
+    href: '/executivo/gamificacao',
+    label: 'Metas da Equipe',
+    description: 'Regras & Recompensas',
+    iconName: 'Target',
+    roles: ['owner'],
+    category: 'diretoria',
   },
 ]
 

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Shield, Plus, Copy, Check } from "lucide-react";
+import { ExecutivoTabs } from "@/components/executivo/ExecutivoTabs";
 
 type Role = "vendas" | "trafego" | "dev" | "owner";
 
@@ -86,6 +87,9 @@ export function UserManagementClient({ initialUsers }: { initialUsers: User[] })
           Crie credenciais para sua equipe (Vendas, Tráfego, Devs). A senha será gerada automaticamente.
         </p>
       </div>
+
+      {/* Navegação Executiva */}
+      <ExecutivoTabs activeTab="usuarios" />
 
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
         <form onSubmit={handleCreate} className="space-y-4">

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { ProjectManagementBoard } from '@/components/executivo/ProjectManagementBoard'
 import { Briefcase } from 'lucide-react'
+import { ExecutivoTabs } from '@/components/executivo/ExecutivoTabs'
 
 export default async function ProjetosPage() {
   const supabase = await createClient()
@@ -67,6 +68,9 @@ export default async function ProjetosPage() {
           <p className="text-xs text-muted-foreground">Owner · Encerramento e auditoria de projetos</p>
         </div>
       </div>
+
+      {/* Navegação Executiva */}
+      <ExecutivoTabs activeTab="projetos" />
 
       <ProjectManagementBoard
         devProjects={devProjects ?? []}

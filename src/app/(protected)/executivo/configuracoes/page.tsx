@@ -6,6 +6,7 @@ import {
   Settings, Users, ArrowRightLeft, ShieldAlert, Bot,
   Clock, Zap, Pause, Play, CheckCircle2, AlertTriangle, Save
 } from 'lucide-react'
+import { ExecutivoTabs } from '@/components/executivo/ExecutivoTabs'
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
@@ -162,6 +163,9 @@ export default function SettingsPage() {
           </p>
         </div>
       </div>
+
+      {/* Navegação Executiva */}
+      <ExecutivoTabs activeTab="configuracoes" />
 
       {loading ? (
         <div className="p-16 text-center text-xs text-muted-foreground">

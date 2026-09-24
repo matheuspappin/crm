@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { Wallet } from 'lucide-react'
 import { ClientPortfolioManager } from '@/components/executivo/ClientPortfolioManager'
+import { ExecutivoTabs } from '@/components/executivo/ExecutivoTabs'
 
 export default async function CarteiraClientesPage() {
   const supabase = await createClient()
@@ -60,6 +61,9 @@ export default async function CarteiraClientesPage() {
           </div>
         </div>
       </div>
+
+      {/* Navegação Executiva */}
+      <ExecutivoTabs activeTab="carteira" />
 
       {/* Conteúdo Principal da Carteira */}
       <ClientPortfolioManager
