@@ -29,6 +29,14 @@ export const NAV_ITEMS: NavItemConfig[] = [
     category: 'comercial',
   },
   {
+    href: '/vendas/campanhas',
+    label: 'Máquina de Vendas',
+    description: 'Bot & Automação',
+    iconName: 'Bot',
+    roles: ['vendas', 'owner'],
+    category: 'comercial',
+  },
+  {
     href: '/vendas',
     label: 'Funil Comercial',
     description: 'Kanban & Pipeline',

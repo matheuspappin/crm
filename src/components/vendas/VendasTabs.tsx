@@ -1,11 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { Kanban, Users, Layers } from 'lucide-react'
+import { Kanban, Users, Layers, Bot } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface VendasTabsProps {
-  activeTab: 'lotes' | 'kanban' | 'clientes' | string
+  activeTab: 'lotes' | 'campanhas' | 'kanban' | 'clientes' | string
   kanbanCount?: number
   clientsCount?: number
   projectsCount?: number
@@ -18,10 +18,11 @@ export function VendasTabs({
   clientsCount,
   lotesCount,
 }: VendasTabsProps) {
-  // Apenas as etapas reais da operação comercial:
-  // 1. Lotes (distribuir blocos de leads gerados/aquecidos)
-  // 2. Kanban (atendimento e negociação pelos vendedores)
-  // 3. Clientes (fechamentos e contratos)
+  // A esteira comercial alinhada com as etapas reais:
+  // 1. Gestor de Lotes (pacotes de leads minerados centralmente pelo Hunter)
+  // 2. Máquina de Vendas (painel de controle do Bot da Empresa: delay, anti-vácuo, copies)
+  // 3. Funil Kanban (atendimento humano e negociação com leads aquecidos)
+  // 4. Clientes Fechados (histórico de vendas e contratos fechados)
   const tabs = [
     {
       key: 'lotes',
@@ -31,16 +32,23 @@ export function VendasTabs({
       count: lotesCount,
     },
     {
+      key: 'campanhas',
+      href: '/vendas/campanhas',
+      label: '2. Máquina de Vendas',
+      icon: Bot,
+      count: undefined,
+    },
+    {
       key: 'kanban',
       href: '/vendas',
-      label: '2. Funil Kanban',
+      label: '3. Funil Kanban',
       icon: Kanban,
       count: kanbanCount,
     },
     {
       key: 'clientes',
       href: '/vendas?tab=clientes',
-      label: '3. Clientes Fechados',
+      label: '4. Clientes Fechados',
       icon: Users,
       count: clientsCount,
     },
