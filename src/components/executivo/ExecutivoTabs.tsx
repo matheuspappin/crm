@@ -1,17 +1,16 @@
 'use client'
 
 import Link from 'next/link'
-import { Crown, Bot, Wallet, Package, Users, Briefcase, Target } from 'lucide-react'
+import { Crown, Wallet, Package, Users, Briefcase, Target } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export type ExecutivoTabKey =
   | 'dashboard'
-  | 'configuracoes'
   | 'carteira'
   | 'pricing'
   | 'usuarios'
-  | 'projetos'
   | 'gamificacao'
+  | 'projetos'
 
 interface ExecutivoTabsProps {
   activeTab: ExecutivoTabKey
@@ -24,12 +23,6 @@ export function ExecutivoTabs({ activeTab }: ExecutivoTabsProps) {
       href: '/executivo',
       label: 'Painel Geral',
       icon: Crown,
-    },
-    {
-      key: 'configuracoes' as ExecutivoTabKey,
-      href: '/executivo/configuracoes',
-      label: 'Automação & Bot',
-      icon: Bot,
     },
     {
       key: 'carteira' as ExecutivoTabKey,
@@ -50,16 +43,16 @@ export function ExecutivoTabs({ activeTab }: ExecutivoTabsProps) {
       icon: Users,
     },
     {
-      key: 'projetos' as ExecutivoTabKey,
-      href: '/executivo/projetos',
-      label: 'Auditoria de Projetos',
-      icon: Briefcase,
-    },
-    {
       key: 'gamificacao' as ExecutivoTabKey,
       href: '/executivo/gamificacao',
       label: 'Metas da Equipe',
       icon: Target,
+    },
+    {
+      key: 'projetos' as ExecutivoTabKey,
+      href: '/executivo/projetos',
+      label: 'Auditoria de Projetos',
+      icon: Briefcase,
     },
   ]
 

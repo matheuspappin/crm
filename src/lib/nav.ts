@@ -14,10 +14,10 @@ export interface NavItemConfig {
 export const CATEGORY_METADATA: Record<NavCategory, { label: string; badge?: string }> = {
   comercial: { label: 'Comercial & Vendas' },
   operacao: { label: 'Operação & Entregas' },
-  diretoria: { label: 'Diretoria & Admin' },
+  diretoria: { label: 'Super Admin' },
 }
 
-// Fonte única de verdade para o nav — estruturado nos 3 Pilares do Negócio
+// Fonte única de verdade para o nav — estruturado nos 3 Pilares do Negócio sem duplicidades
 export const NAV_ITEMS: NavItemConfig[] = [
   // --- PILAR 1: COMERCIAL & VENDAS (Aquisição) ---
   {
@@ -61,7 +61,7 @@ export const NAV_ITEMS: NavItemConfig[] = [
     category: 'comercial',
   },
 
-  // --- PILAR 2: OPERAÇÃO & ENTREGAS (Pós-Venda) ---
+  // --- PILAR 2: OPERAÇÃO & ENTREGAS (Execução Técnica) ---
   {
     href: '/dev',
     label: 'Sites & Landing Pages',
@@ -78,24 +78,8 @@ export const NAV_ITEMS: NavItemConfig[] = [
     roles: ['trafego', 'owner'],
     category: 'operacao',
   },
-  {
-    href: '/executivo/carteira',
-    label: 'Carteira de Clientes',
-    description: 'MRR, LTV & Pós-Venda',
-    iconName: 'Wallet',
-    roles: ['owner', 'vendas'],
-    category: 'operacao',
-  },
-  {
-    href: '/executivo/projetos',
-    label: 'Auditoria de Projetos',
-    description: 'Encerrar & Auditar',
-    iconName: 'Briefcase',
-    roles: ['owner'],
-    category: 'operacao',
-  },
 
-  // --- PILAR 3: DIRETORIA & ADMIN (Gestão Estratégica) ---
+  // --- PILAR 3: SUPER ADMIN (Gestão Estratégica) ---
   {
     href: '/executivo',
     label: 'Painel Executivo',
@@ -105,10 +89,10 @@ export const NAV_ITEMS: NavItemConfig[] = [
     category: 'diretoria',
   },
   {
-    href: '/executivo/configuracoes',
-    label: 'Automação & Bot',
-    description: 'Motor do Bot & Delay',
-    iconName: 'Bot',
+    href: '/executivo/carteira',
+    label: 'Carteira & MRR',
+    description: 'Contratos & Recorrência',
+    iconName: 'Wallet',
     roles: ['owner'],
     category: 'diretoria',
   },
@@ -133,6 +117,14 @@ export const NAV_ITEMS: NavItemConfig[] = [
     label: 'Metas da Equipe',
     description: 'Regras & Recompensas',
     iconName: 'Target',
+    roles: ['owner'],
+    category: 'diretoria',
+  },
+  {
+    href: '/executivo/projetos',
+    label: 'Auditoria de Projetos',
+    description: 'Encerrar & Auditar',
+    iconName: 'Briefcase',
     roles: ['owner'],
     category: 'diretoria',
   },
