@@ -555,10 +555,10 @@ export function ClientPortfolioManager({
                     </div>
 
                     <a
-                      href={`/vendas/campanhas`}
+                      href={`/vendas/lotes`}
                       className="px-3 py-1.5 rounded-xl bg-foreground/10 hover:bg-foreground/20 text-foreground text-xs font-semibold transition-all"
                     >
-                      Criar Campanha de Retomada
+                      Redistribuir Lead
                     </a>
                   </div>
                 ))}

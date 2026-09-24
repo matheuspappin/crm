@@ -29,14 +29,6 @@ export const NAV_ITEMS: NavItemConfig[] = [
     category: 'comercial',
   },
   {
-    href: '/vendas/campanhas',
-    label: 'Máquina de Vendas',
-    description: 'Campanhas por Nicho',
-    iconName: 'Send',
-    roles: ['vendas', 'owner'],
-    category: 'comercial',
-  },
-  {
     href: '/vendas',
     label: 'Funil Comercial',
     description: 'Kanban & Pipeline',

@@ -156,8 +156,8 @@ export async function POST(req: NextRequest) {
         title: `📦 Lote com ${targetIds.length} lead(s) recebido!`,
         message: `Você recebeu um novo lote de prospecção ("${search.query}" em ${search.city}). Contate agora antes que esfriem!`,
         type: 'info',
-        link: destination === 'kanban' ? '/vendas' : '/vendas/campanhas',
-        related_entity_type: destination === 'kanban' ? 'lead' : 'campaign',
+        link: '/vendas',
+        related_entity_type: 'lead',
       }])
     } catch (notifErr) {
       console.warn('Aviso: Falha ao emitir notificação no CRM:', notifErr)
