@@ -10,6 +10,7 @@ interface VendasTabsProps {
   clientsCount?: number
   projectsCount?: number
   lotesCount?: number
+  isOwner?: boolean
 }
 
 export function VendasTabs({
@@ -17,34 +18,38 @@ export function VendasTabs({
   kanbanCount,
   clientsCount,
   lotesCount,
+  isOwner = true,
 }: VendasTabsProps) {
   // A esteira comercial focada no CRM:
   // 1. Gestor de Lotes: O Super Admin visualiza e distribui os blocos de leads quentes para os vendedores
   // 2. Funil Kanban: Os vendedores recebem os leads quentes, negociam e avançam no pipeline
   // 3. Clientes Fechados: Gestão dos contratos e clientes conquistados
-  const tabs = [
+  const allTabs = [
     {
       key: 'lotes',
       href: '/vendas/lotes',
       label: '1. Gestor de Lotes',
       icon: Layers,
       count: lotesCount,
+      adminOnly: true,
     },
     {
       key: 'kanban',
       href: '/vendas',
-      label: '2. Funil Kanban',
+      label: isOwner ? '2. Funil Kanban' : 'Meu Funil Kanban',
       icon: Kanban,
       count: kanbanCount,
     },
     {
       key: 'clientes',
       href: '/vendas?tab=clientes',
-      label: '3. Clientes Fechados',
+      label: isOwner ? '3. Clientes Fechados' : 'Meus Clientes Fechados',
       icon: Users,
       count: clientsCount,
     },
   ]
+
+  const tabs = allTabs.filter(t => !t.adminOnly || isOwner)
 
   return (
     <div className="flex items-center gap-1 border-b border-border overflow-x-auto custom-scrollbar">

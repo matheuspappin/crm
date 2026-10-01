@@ -2,21 +2,24 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { X, Mail, Phone, Calendar, Clock, FileText, CheckCircle2, ChevronRight, MessageSquare, Briefcase, Pencil, Check } from 'lucide-react'
+import { X, Mail, Phone, Calendar, Clock, FileText, CheckCircle2, ChevronRight, MessageSquare, Briefcase, Pencil, Check, MapPin } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import type { Lead, Interaction } from '@/types/database'
 import { useRouter } from 'next/navigation'
 import { LeadFreshnessTimer } from './LeadFreshnessTimer'
+import { ContactLeadModal } from './ContactLeadModal'
+import { extractCleanPhone, formatPhoneDisplay, isAddressLike, isEmail } from '@/lib/contact'
 
 interface LeadTimelineModalProps {
   lead: Lead
   isOpen: boolean
   onClose: () => void
+  onLeadUpdated?: (updatedLead: Lead) => void
 }
 
-export function LeadTimelineModal({ lead, isOpen, onClose }: LeadTimelineModalProps) {
+export function LeadTimelineModal({ lead, isOpen, onClose, onLeadUpdated }: LeadTimelineModalProps) {
   const [interactions, setInteractions] = useState<(Interaction & { created_by_name?: string })[]>([])
   const [loading, setLoading] = useState(true)
   const [newNote, setNewNote] = useState('')
@@ -29,6 +32,12 @@ export function LeadTimelineModal({ lead, isOpen, onClose }: LeadTimelineModalPr
   const [isEditingValue, setIsEditingValue] = useState(false)
   const [editValue, setEditValue] = useState(lead.value?.toString() || '0')
   const [savingValue, setSavingValue] = useState(false)
+
+  // Estado de edição de contato e modal de WhatsApp
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false)
+  const [isEditingContact, setIsEditingContact] = useState(false)
+  const [editContactValue, setEditContactValue] = useState(lead.contact || '')
+  const [savingContact, setSavingContact] = useState(false)
   
   const supabase = createClient()
   const router = useRouter()
@@ -163,6 +172,44 @@ export function LeadTimelineModal({ lead, isOpen, onClose }: LeadTimelineModalPr
     }
   }
 
+  async function handleSaveContact() {
+    setSavingContact(true)
+    const formatted = editContactValue.trim() || null
+    const { error } = await (supabase as any)
+      .from('leads')
+      .update({ contact: formatted })
+      .eq('id', lead.id)
+
+    setSavingContact(false)
+
+    if (!error) {
+      lead.contact = formatted
+      setIsEditingContact(false)
+      if (onLeadUpdated) onLeadUpdated({ ...lead, contact: formatted })
+      router.refresh()
+    } else {
+      alert('Erro ao salvar contato: ' + error.message)
+    }
+  }
+
+  async function handleSendEmail() {
+    const email = isEmail(lead.contact) ? lead.contact : prompt('Informe o e-mail do cliente:')
+    if (!email) return
+
+    const { data: userData } = await supabase.auth.getUser()
+    if (userData.user) {
+      await (supabase as any).from('interactions').insert({
+        lead_id: lead.id,
+        type: 'email',
+        notes: `Contato por e-mail aberto para ${email}`,
+        created_by: userData.user.id
+      })
+      fetchInteractions()
+    }
+
+    window.open(`mailto:${email}?subject=${encodeURIComponent(`Contato Comercial - ${lead.name}`)}`, '_blank')
+  }
+
   if (!isOpen) return null
 
   return (
@@ -177,11 +224,96 @@ export function LeadTimelineModal({ lead, isOpen, onClose }: LeadTimelineModalPr
             </div>
             <div>
               <h2 className="text-xl font-bold text-foreground">{lead.name}</h2>
-              <div className="flex items-center gap-3 text-sm mt-0.5 flex-wrap">
-                {lead.contact && (
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Phone className="w-3.5 h-3.5" /> {lead.contact}
-                  </span>
+              <div className="flex items-center gap-3 text-sm mt-1 flex-wrap">
+                {isEditingContact ? (
+                  <div className="flex items-center gap-1.5 bg-background border border-border rounded-lg px-2 py-1">
+                    <input
+                      type="text"
+                      value={editContactValue}
+                      onChange={(e) => setEditContactValue(e.target.value)}
+                      placeholder="Telefone ou WhatsApp..."
+                      className="bg-transparent text-xs text-foreground focus:outline-none w-48 font-mono"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveContact()
+                        if (e.key === 'Escape') setIsEditingContact(false)
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSaveContact}
+                      disabled={savingContact}
+                      className="p-1 rounded text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                      title="Salvar"
+                    >
+                      <Check className="w-3 h-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingContact(false)}
+                      className="p-1 rounded text-muted-foreground hover:bg-secondary transition-colors"
+                      title="Cancelar"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {lead.contact ? (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary/60 px-2.5 py-1 rounded-lg border border-border">
+                        {isAddressLike(lead.contact) ? (
+                          <>
+                            <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            <span className="truncate max-w-[220px]" title={lead.contact}>{lead.contact}</span>
+                          </>
+                        ) : isEmail(lead.contact) ? (
+                          <>
+                            <Mail className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                            <span className="truncate max-w-[200px]">{lead.contact}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            <span className="font-mono font-medium text-foreground">{formatPhoneDisplay(lead.contact)}</span>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditContactValue(lead.contact || '')
+                            setIsEditingContact(true)
+                          }}
+                          className="text-muted-foreground hover:text-foreground ml-1 p-0.5 rounded hover:bg-secondary transition-colors"
+                          title="Editar contato"
+                        >
+                          <Pencil className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditContactValue('')
+                          setIsEditingContact(true)
+                        }}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground bg-secondary/30 hover:bg-secondary/60 px-2.5 py-1 rounded-lg border border-dashed border-border transition-colors"
+                      >
+                        <Phone className="w-3 h-3" />
+                        <span>Adicionar contato</span>
+                      </button>
+                    )}
+
+                    {/* Botão de Contactar WhatsApp no header */}
+                    <button
+                      type="button"
+                      onClick={() => setIsContactModalOpen(true)}
+                      className="flex items-center gap-1 text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 hover:border-emerald-500/40 px-2.5 py-1 rounded-lg transition-all hover:scale-105 active:scale-95 shadow-sm"
+                      title="Contactar cliente via WhatsApp"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>Contactar</span>
+                    </button>
+                  </div>
                 )}
                 <LeadFreshnessTimer
                   createdAt={lead.generation_created_at || lead.created_at}
@@ -339,10 +471,22 @@ export function LeadTimelineModal({ lead, isOpen, onClose }: LeadTimelineModalPr
 
             <div className="glass-card p-5 flex flex-col gap-3">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Ações Rápidas</h3>
+              
+              {/* Botão de Contactar WhatsApp */}
               <button 
+                type="button"
+                onClick={() => setIsContactModalOpen(true)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/25 hover:scale-[1.01] active:scale-[0.98]"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Contactar via WhatsApp
+              </button>
+
+              <button 
+                type="button"
                 onClick={handleGenerateContract}
                 disabled={generatingContract}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 bg-violet-600 hover:bg-violet-500 text-background disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {generatingContract ? (
                   <>
@@ -357,7 +501,11 @@ export function LeadTimelineModal({ lead, isOpen, onClose }: LeadTimelineModalPr
                 )}
               </button>
               
-              <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 bg-secondary hover:bg-[#2a2a3e] text-foreground border border-border">
+              <button 
+                type="button"
+                onClick={handleSendEmail}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 bg-secondary hover:bg-[#2a2a3e] text-foreground border border-border"
+              >
                 <Mail className="w-4 h-4" />
                 Enviar E-mail
               </button>
@@ -411,9 +559,27 @@ export function LeadTimelineModal({ lead, isOpen, onClose }: LeadTimelineModalPr
                     
                     <div className="glass-card p-4 hover:border-border transition-colors">
                       <div className="flex justify-between items-start mb-2">
-                        <span className="text-xs font-medium text-foreground bg-foreground/10 px-2 py-0.5 rounded-full border border-border/40">
-                          {interaction.type === 'note' ? 'Anotação' : 'Status Alterado'}
-                        </span>
+                        {interaction.type === 'whatsapp' ? (
+                          <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-1">
+                            <MessageSquare className="w-3 h-3" /> WhatsApp
+                          </span>
+                        ) : interaction.type === 'email' ? (
+                          <span className="text-xs font-semibold text-sky-400 bg-sky-500/10 px-2.5 py-0.5 rounded-full border border-sky-500/20 flex items-center gap-1">
+                            <Mail className="w-3 h-3" /> E-mail
+                          </span>
+                        ) : interaction.type === 'call' ? (
+                          <span className="text-xs font-semibold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20 flex items-center gap-1">
+                            <Phone className="w-3 h-3" /> Ligação
+                          </span>
+                        ) : interaction.type === 'note' ? (
+                          <span className="text-xs font-medium text-foreground bg-foreground/10 px-2 py-0.5 rounded-full border border-border/40">
+                            Anotação
+                          </span>
+                        ) : (
+                          <span className="text-xs font-medium text-foreground bg-foreground/10 px-2 py-0.5 rounded-full border border-border/40">
+                            Status Alterado
+                          </span>
+                        )}
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           {format(new Date(interaction.created_at), "dd 'de' MMM, HH:mm", { locale: ptBR })}
@@ -455,6 +621,24 @@ export function LeadTimelineModal({ lead, isOpen, onClose }: LeadTimelineModalPr
           </div>
         </div>
       </div>
+
+      {/* Modal de Contato via WhatsApp */}
+      {isContactModalOpen && (
+        <ContactLeadModal
+          lead={lead}
+          isOpen={isContactModalOpen}
+          onClose={() => {
+            setIsContactModalOpen(false)
+            fetchInteractions()
+          }}
+          onLeadUpdated={(updated) => {
+            Object.assign(lead, updated)
+            if (onLeadUpdated) onLeadUpdated(updated)
+            fetchInteractions()
+            router.refresh()
+          }}
+        />
+      )}
     </div>
   )
 }

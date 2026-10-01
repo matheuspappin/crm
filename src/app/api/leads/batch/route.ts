@@ -52,15 +52,35 @@ export async function GET(req: NextRequest) {
     // 4. Estatísticas do Pacote
     const allLeads = leads || []
     const total = allLeads.length
-    const disponivel = allLeads.filter((l: any) => !l.distribution_status || l.distribution_status === 'disponivel').length
+    const disponivel = allLeads.filter((l: any) => !l.distribution_status || l.distribution_status === 'disponivel' || l.distribution_status === 'respondeu_maquina').length
     const distribuido = allLeads.filter((l: any) => l.distribution_status === 'distribuido').length
     const em_campanha = allLeads.filter((l: any) => l.distribution_status === 'em_campanha').length
+    const respondeu_maquina = allLeads.filter((l: any) => l.distribution_status === 'respondeu_maquina').length
+
+    // 5. Resumo dos vendedores atribuídos neste lote
+    const sellersSummaryMap: Record<string, { id: string; name: string; email?: string; role?: string; count: number }> = {}
+    for (const l of allLeads) {
+      if (l.assigned_user) {
+        if (!sellersSummaryMap[l.assigned_user.id]) {
+          sellersSummaryMap[l.assigned_user.id] = {
+            id: l.assigned_user.id,
+            name: l.assigned_user.name,
+            email: l.assigned_user.email,
+            role: l.assigned_user.role,
+            count: 0,
+          }
+        }
+        sellersSummaryMap[l.assigned_user.id].count += 1
+      }
+    }
+    const assigned_sellers = Object.values(sellersSummaryMap)
 
     return NextResponse.json({
       search,
       leads: allLeads,
-      stats: { total, disponivel, distribuido, em_campanha },
+      stats: { total, disponivel, distribuido, em_campanha, respondeu_maquina },
       sellers: sellers || [],
+      assigned_sellers,
     })
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Erro interno' }, { status: 500 })

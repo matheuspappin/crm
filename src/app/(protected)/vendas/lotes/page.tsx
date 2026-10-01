@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import { Layers } from 'lucide-react'
 import { VendasTabs } from '@/components/vendas/VendasTabs'
 import { LotesManager, type BatchItem } from '@/components/vendas/LotesManager'
@@ -9,9 +10,22 @@ export default async function LotesPage() {
   const supabase = await createClient()
   const db = supabase as any
 
+  // Apenas o Super Admin tem acesso à gestão e distribuição central de lotes
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  const { data: currentUser } = await db
+    .from('users')
+    .select('role')
+    .eq('id', authUser?.id || '')
+    .maybeSingle()
+
+  if (currentUser?.role !== 'owner') {
+    redirect('/vendas')
+  }
+
   const [
     { data: searches },
     { data: leadsData },
+    { data: usersList },
     { count: activeLeadsCount },
     { count: closedLeadsCount },
     { count: projectsCount },
@@ -23,7 +37,11 @@ export default async function LotesPage() {
 
     db
       .from('scraped_leads')
-      .select('search_id, distribution_status'),
+      .select('search_id, distribution_status, assigned_to'),
+
+    db
+      .from('users')
+      .select('id, name, email, role'),
 
     supabase
       .from('leads')
@@ -41,25 +59,51 @@ export default async function LotesPage() {
       .neq('status', 'entregue'),
   ])
 
-  // Agrupar contagens de disponibilidade por search_id
-  const statsMap: Record<string, { available: number; distributed: number }> = {}
+  // Mapa de usuários para lookup rápido
+  const usersMap = new Map<string, { id: string; name: string; email: string; role: string }>()
+  for (const u of usersList || []) {
+    usersMap.set(u.id, u)
+  }
+
+  // Agrupar contagens de disponibilidade e vendedores por search_id
+  const statsMap: Record<
+    string,
+    {
+      available: number
+      distributed: number
+      sellersMap: Record<string, { id: string; name: string; count: number }>
+    }
+  > = {}
+
   if (leadsData && leadsData.length > 0) {
     for (const lead of leadsData) {
       if (!lead.search_id) continue
       if (!statsMap[lead.search_id]) {
-        statsMap[lead.search_id] = { available: 0, distributed: 0 }
+        statsMap[lead.search_id] = { available: 0, distributed: 0, sellersMap: {} }
       }
       const st = lead.distribution_status || 'disponivel'
       if (st === 'disponivel') {
         statsMap[lead.search_id].available += 1
       } else {
         statsMap[lead.search_id].distributed += 1
+        if (lead.assigned_to) {
+          const u = usersMap.get(lead.assigned_to)
+          const sellerName = u?.name || 'Vendedor'
+          if (!statsMap[lead.search_id].sellersMap[lead.assigned_to]) {
+            statsMap[lead.search_id].sellersMap[lead.assigned_to] = {
+              id: lead.assigned_to,
+              name: sellerName,
+              count: 0,
+            }
+          }
+          statsMap[lead.search_id].sellersMap[lead.assigned_to].count += 1
+        }
       }
     }
   }
 
   const batches: BatchItem[] = (searches || []).map((s: any) => {
-    const stats = statsMap[s.id] || { available: 0, distributed: 0 }
+    const stats = statsMap[s.id] || { available: 0, distributed: 0, sellersMap: {} }
     return {
       id: s.id,
       query: s.query,
@@ -69,6 +113,7 @@ export default async function LotesPage() {
       created_at: s.created_at,
       available_count: stats.available,
       distributed_count: stats.distributed,
+      assigned_sellers: Object.values(stats.sellersMap || {}),
     }
   })
 
@@ -96,6 +141,7 @@ export default async function LotesPage() {
         clientsCount={closedLeadsCount || 0}
         projectsCount={projectsCount || 0}
         lotesCount={batches.length}
+        isOwner={true}
       />
 
       {/* Conteúdo */}

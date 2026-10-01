@@ -371,7 +371,7 @@ export interface ScrapedLead {
   score_reasons: any | null
   assigned_to?: string | null
   distributed_at?: string | null
-  distribution_status?: 'disponivel' | 'distribuido' | 'em_campanha' | 'descartado'
+  distribution_status?: 'disponivel' | 'distribuido' | 'em_campanha' | 'descartado' | 'respondeu_maquina'
   created_at: string
   assigned_user?: User
 }

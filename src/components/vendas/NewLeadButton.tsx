@@ -10,7 +10,13 @@ interface Seller {
   name: string
 }
 
-export function NewLeadButton({ sellers }: { sellers: Seller[] }) {
+interface NewLeadButtonProps {
+  sellers: Seller[]
+  currentUserId?: string
+  isSeller?: boolean
+}
+
+export function NewLeadButton({ sellers, currentUserId, isSeller = false }: NewLeadButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -22,7 +28,7 @@ export function NewLeadButton({ sellers }: { sellers: Seller[] }) {
     utm_source: '',
     company_name: '',
     project_description: '',
-    assigned_to: '',
+    assigned_to: isSeller && currentUserId ? currentUserId : '',
     service_type: 'ambos'
   })
 
@@ -157,22 +163,27 @@ export function NewLeadButton({ sellers }: { sellers: Seller[] }) {
                 </div>
 
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Responsável (Vendedor)</label>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                      Responsável {isSeller ? '(Você)' : '(Vendedor)'}
+                    </label>
                     <div className="relative">
                       <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4b4b6a]" />
                       <select
+                        disabled={isSeller}
                         value={formData.assigned_to}
                         onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
-                        className="w-full bg-background border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-foreground appearance-none"
+                        className={`w-full bg-background border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-foreground appearance-none ${
+                          isSeller ? 'opacity-80 cursor-not-allowed bg-secondary/50' : ''
+                        }`}
                       >
-                        <option value="">-- Sem responsável --</option>
+                        {!isSeller && <option value="">-- Sem responsável --</option>}
                         {sellers.map(s => (
-                          <option key={s.id} value={s.id}>{s.name}</option>
+                          <option key={s.id} value={s.id}>
+                            {s.name} {s.id === currentUserId ? '(Você)' : ''}
+                          </option>
                         ))}
                       </select>
                     </div>
-                  </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Origem do Lead</label>

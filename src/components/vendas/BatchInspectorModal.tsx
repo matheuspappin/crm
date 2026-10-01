@@ -6,6 +6,8 @@ import {
   Phone, Globe, CheckCircle2, Clock, Flame, ChevronRight,
   ExternalLink, Layers, ArrowRight, UserCheck
 } from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import { LeadFreshnessTimer } from './LeadFreshnessTimer'
 import type { ScrapedLead, ScrapedSearch, User } from '@/types/database'
 
@@ -20,11 +22,12 @@ export function BatchInspectorModal({ searchId, onClose, onDistributed }: BatchI
   const [search, setSearch] = useState<ScrapedSearch | null>(null)
   const [leads, setLeads] = useState<ScrapedLead[]>([])
   const [sellers, setSellers] = useState<User[]>([])
-  const [stats, setStats] = useState({ total: 0, disponivel: 0, distribuido: 0, em_campanha: 0 })
+  const [assignedSellers, setAssignedSellers] = useState<Array<{ id: string; name: string; email?: string; role?: string; count: number }>>([])
+  const [stats, setStats] = useState({ total: 0, disponivel: 0, distribuido: 0, em_campanha: 0, respondeu_maquina: 0 })
 
   // Seleção e Filtro
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [filterStatus, setFilterStatus] = useState<'all' | 'disponivel' | 'distribuido'>('all')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'disponivel' | 'distribuido' | 'respondeu_maquina'>('all')
 
   // Painel de Distribuição
   const [targetSellerId, setTargetSellerId] = useState<string>('')
@@ -43,6 +46,7 @@ export function BatchInspectorModal({ searchId, onClose, onDistributed }: BatchI
         setLeads(data.leads || [])
         setStats(data.stats || { total: 0, disponivel: 0, distribuido: 0, em_campanha: 0 })
         setSellers(data.sellers || [])
+        setAssignedSellers(data.assigned_sellers || [])
         if (data.sellers && data.sellers.length > 0 && !targetSellerId) {
           setTargetSellerId(data.sellers[0].id)
         }
@@ -65,6 +69,7 @@ export function BatchInspectorModal({ searchId, onClose, onDistributed }: BatchI
     return leads.filter((l) => {
       const st = l.distribution_status || 'disponivel'
       if (filterStatus === 'disponivel') return st === 'disponivel'
+      if (filterStatus === 'respondeu_maquina') return st === 'respondeu_maquina'
       if (filterStatus === 'distribuido') return st === 'distribuido' || st === 'em_campanha'
       return true
     })
@@ -82,14 +87,14 @@ export function BatchInspectorModal({ searchId, onClose, onDistributed }: BatchI
 
   const selectAllAvailable = () => {
     const availableIds = leads
-      .filter((l) => !l.distribution_status || l.distribution_status === 'disponivel')
+      .filter((l) => !l.distribution_status || l.distribution_status === 'disponivel' || l.distribution_status === 'respondeu_maquina')
       .map((l) => l.id)
     setSelectedIds(new Set(availableIds))
   }
 
   const selectTopN = (n: number) => {
     const available = leads
-      .filter((l) => !l.distribution_status || l.distribution_status === 'disponivel')
+      .filter((l) => !l.distribution_status || l.distribution_status === 'disponivel' || l.distribution_status === 'respondeu_maquina')
       .slice(0, n)
       .map((l) => l.id)
     setSelectedIds(new Set(available))
@@ -187,6 +192,28 @@ export function BatchInspectorModal({ searchId, onClose, onDistributed }: BatchI
           </button>
         </div>
 
+        {/* Banner Informativo de Atribuição aos Vendedores */}
+        {assignedSellers.length > 0 && (
+          <div className="px-5 py-2.5 bg-purple-500/10 border-b border-purple-500/20 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <UserCheck className="w-4 h-4 text-purple-400 shrink-0" />
+              <span className="text-purple-200">
+                <strong className="text-purple-300 font-semibold">Lote Delegado para:</strong>{' '}
+                {assignedSellers.map((s) => `${s.name} (${s.count} leads)`).join(', ')}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold bg-purple-500/25 text-purple-200 border border-purple-400/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-purple-400" />
+                {stats.disponivel === 0 ? '100% Entregue' : `${stats.distribuido} entregues`}
+              </span>
+              <span className="text-[10px] text-muted-foreground hidden sm:inline">
+                • Bloqueado contra reenvio duplo
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Estatísticas Rápidas & Filtros */}
         <div className="px-5 py-3 border-b border-border bg-card flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-3">
@@ -198,6 +225,12 @@ export function BatchInspectorModal({ searchId, onClose, onDistributed }: BatchI
               <span className="text-emerald-400 font-medium">Disponíveis:</span>
               <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 font-bold border border-emerald-500/30">{stats.disponivel}</span>
             </div>
+            {stats.respondeu_maquina > 0 && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-orange-400 font-bold animate-pulse">🔥 Responderam ao Bot:</span>
+                <span className="px-2 py-0.5 rounded-md bg-orange-500/20 text-orange-400 font-bold border border-orange-500/40">{stats.respondeu_maquina}</span>
+              </div>
+            )}
             <div className="flex items-center gap-1.5">
               <span className="text-purple-400 font-medium">Já Distribuídos:</span>
               <span className="px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-400 font-bold border border-purple-500/30">{stats.distribuido + stats.em_campanha}</span>
@@ -215,8 +248,16 @@ export function BatchInspectorModal({ searchId, onClose, onDistributed }: BatchI
               onClick={() => setFilterStatus('disponivel')}
               className={`px-2.5 py-1 rounded-lg transition-all ${filterStatus === 'disponivel' ? 'bg-emerald-500 text-black font-bold' : 'text-muted-foreground hover:text-foreground'}`}
             >
-              Disponíveis ({stats.disponivel})
+              Disponíveis ({stats.disponivel - stats.respondeu_maquina})
             </button>
+            {stats.respondeu_maquina > 0 && (
+              <button
+                onClick={() => setFilterStatus('respondeu_maquina')}
+                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 ${filterStatus === 'respondeu_maquina' ? 'bg-orange-500 text-black font-bold' : 'text-orange-400 hover:text-orange-300 border border-orange-500/30 rounded-lg'}`}
+              >
+                🔥 Responderam ({stats.respondeu_maquina})
+              </button>
+            )}
             <button
               onClick={() => setFilterStatus('distribuido')}
               className={`px-2.5 py-1 rounded-lg transition-all ${filterStatus === 'distribuido' ? 'bg-purple-500 text-white font-bold' : 'text-muted-foreground hover:text-foreground'}`}
@@ -283,7 +324,8 @@ export function BatchInspectorModal({ searchId, onClose, onDistributed }: BatchI
             <div className="divide-y divide-border">
               {filteredLeads.map((lead) => {
                 const isSelected = selectedIds.has(lead.id)
-                const isAvailable = !lead.distribution_status || lead.distribution_status === 'disponivel'
+                const isRespondeuMaquina = lead.distribution_status === 'respondeu_maquina'
+                const isAvailable = !lead.distribution_status || lead.distribution_status === 'disponivel' || isRespondeuMaquina
                 const isAssigned = lead.distribution_status === 'distribuido' || lead.distribution_status === 'em_campanha'
                 const cleanPhone = (lead.phone || '').replace(/\D/g, '')
 
@@ -294,6 +336,8 @@ export function BatchInspectorModal({ searchId, onClose, onDistributed }: BatchI
                     className={`p-4 flex items-center justify-between gap-4 transition-colors cursor-pointer ${
                       isSelected
                         ? 'bg-foreground/5 border-l-4 border-l-emerald-500'
+                        : isRespondeuMaquina
+                        ? 'bg-orange-500/5 border-l-4 border-l-orange-500 hover:bg-orange-500/10'
                         : 'hover:bg-secondary/30'
                     } ${!isAvailable ? 'opacity-80 cursor-default' : ''}`}
                   >
@@ -320,6 +364,11 @@ export function BatchInspectorModal({ searchId, onClose, onDistributed }: BatchI
                           <h4 className="text-sm font-semibold text-foreground truncate">
                             {lead.name}
                           </h4>
+                          {isRespondeuMaquina && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-500/20 text-orange-400 border border-orange-500/40 animate-pulse">
+                              🔥 Respondeu ao Bot
+                            </span>
+                          )}
                           {lead.score && lead.score >= 90 && (
                             <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
                               🔥 Score {lead.score}
@@ -367,16 +416,25 @@ export function BatchInspectorModal({ searchId, onClose, onDistributed }: BatchI
 
                       {/* Status de Distribuição */}
                       <div className="w-36 text-right">
-                        {isAvailable ? (
+                        {isRespondeuMaquina ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-orange-400 bg-orange-500/15 border border-orange-500/40 px-2 py-0.5 rounded-full animate-pulse">
+                            🔥 Quente — Despachar!
+                          </span>
+                        ) : isAvailable ? (
                           <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
                             ● Disponível
                           </span>
                         ) : (
                           <div className="text-right">
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-300 bg-purple-500/15 border border-purple-500/30 px-2 py-0.5 rounded-full">
-                              <UserCheck className="w-3 h-3" />
-                              {(lead as any).assigned_user?.name || 'Atribuído'}
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-200 bg-purple-500/20 border border-purple-500/30 px-2.5 py-0.5 rounded-full">
+                              <UserCheck className="w-3 h-3 text-purple-400" />
+                              {(lead as any).assigned_user?.name || 'Vendedor'}
                             </span>
+                            {lead.distributed_at && (
+                              <span className="text-[10px] text-muted-foreground block mt-0.5">
+                                {formatDistanceToNow(new Date(lead.distributed_at), { addSuffix: true, locale: ptBR })}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -401,84 +459,138 @@ export function BatchInspectorModal({ searchId, onClose, onDistributed }: BatchI
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            {/* Escolha do Vendedor & Destino */}
-            <div className="flex flex-wrap items-center gap-3 flex-1">
-              <div>
-                <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
-                  Encaminhar para o Vendedor:
-                </label>
-                <select
-                  value={targetSellerId}
-                  onChange={(e) => setTargetSellerId(e.target.value)}
-                  className="text-xs bg-secondary border border-border rounded-xl px-3 py-2 text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-foreground min-w-[200px]"
-                >
-                  {sellers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.role === 'owner' ? 'Admin' : 'Vendas'})
-                    </option>
-                  ))}
-                </select>
+          {/* Quando todos os leads já foram distribuídos, bloqueia reenvio e exibe resumo claro */}
+          {stats.disponivel === 0 ? (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-purple-500/10 border border-purple-500/25">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300 shrink-0">
+                  <CheckCircle2 className="w-5 h-5 text-purple-400" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-foreground">
+                    Pacote 100% Delegado
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {assignedSellers.length > 0 ? (
+                      <>
+                        Todos os {stats.total} leads foram encaminhados para{' '}
+                        <strong className="text-purple-300 font-semibold">
+                          {assignedSellers.map((s) => `${s.name} (${s.count} leads)`).join(', ')}
+                        </strong>{' '}
+                        e já estão no Funil Kanban.
+                      </>
+                    ) : (
+                      'Todos os leads deste pacote já foram encaminhados à equipe comercial.'
+                    )}
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
-                  Destino do Lote:
-                </label>
-                <div className="flex items-center gap-1.5 p-1 bg-secondary rounded-xl border border-border text-xs">
+              <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                <span className="text-[11px] font-semibold text-purple-300 bg-purple-500/20 px-3 py-1.5 rounded-lg border border-purple-500/30">
+                  ✓ Bloqueado contra reenvio
+                </span>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 text-xs font-bold rounded-xl bg-foreground text-background hover:opacity-90 transition-opacity"
+                >
+                  Concluir
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              {assignedSellers.length > 0 && (
+                <div className="mb-3 p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-300 flex items-center gap-2">
+                  <UserCheck className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                  <span>
+                    Atenção: <strong>{stats.distribuido} lead(s)</strong> já foram encaminhados para{' '}
+                    <strong>{assignedSellers.map((s) => `${s.name} (${s.count})`).join(', ')}</strong>. Você está distribuindo os {stats.disponivel} restantes.
+                  </span>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                {/* Escolha do Vendedor & Destino */}
+                <div className="flex flex-wrap items-center gap-3 flex-1">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+                      Encaminhar para o Vendedor:
+                    </label>
+                    <select
+                      value={targetSellerId}
+                      onChange={(e) => setTargetSellerId(e.target.value)}
+                      className="text-xs bg-secondary border border-border rounded-xl px-3 py-2 text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-foreground min-w-[200px]"
+                    >
+                      {sellers.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} ({s.role === 'owner' ? 'Admin' : 'Vendas'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+                      Destino do Lote:
+                    </label>
+                    <div className="flex items-center gap-1.5 p-1 bg-secondary rounded-xl border border-border text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setDestination('kanban')}
+                        className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+                          destination === 'kanban'
+                            ? 'bg-foreground text-background font-bold shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        📌 Funil Kanban
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDestination('campaign')}
+                        className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+                          destination === 'campaign'
+                            ? 'bg-foreground text-background font-bold shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        ⚡ Máquina Outbound
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botão de Envio do Lote */}
+                <div className="flex items-center gap-3 shrink-0">
                   <button
                     type="button"
-                    onClick={() => setDestination('kanban')}
-                    className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
-                      destination === 'kanban'
-                        ? 'bg-foreground text-background font-bold shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
+                    onClick={onClose}
+                    className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    📌 Funil Kanban
+                    Fechar
                   </button>
+
                   <button
                     type="button"
-                    onClick={() => setDestination('campaign')}
-                    className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
-                      destination === 'campaign'
-                        ? 'bg-foreground text-background font-bold shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
+                    onClick={handleDistribute}
+                    disabled={distributing || selectedIds.size === 0}
+                    className="px-5 py-2.5 rounded-xl bg-foreground text-background font-bold text-xs hover:opacity-90 transition-all flex items-center gap-2 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    ⚡ Máquina Outbound
+                    {distributing ? (
+                      'Distribuindo Lote...'
+                    ) : (
+                      <>
+                        <Send className="w-3.5 h-3.5" />
+                        Encaminhar Lote ({selectedIds.size})
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
             </div>
-
-            {/* Botão de Envio do Lote */}
-            <div className="flex items-center gap-3 shrink-0">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Fechar
-              </button>
-
-              <button
-                type="button"
-                onClick={handleDistribute}
-                disabled={distributing || selectedIds.size === 0}
-                className="px-5 py-2.5 rounded-xl bg-foreground text-background font-bold text-xs hover:opacity-90 transition-all flex items-center gap-2 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {distributing ? (
-                  'Distribuindo Lote...'
-                ) : (
-                  <>
-                    <Send className="w-3.5 h-3.5" />
-                    Encaminhar Lote ({selectedIds.size})
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
+          )}
         </div>
 
       </div>

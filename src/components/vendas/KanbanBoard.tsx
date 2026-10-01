@@ -26,11 +26,12 @@ import { CSS } from '@dnd-kit/utilities'
 import { createClient } from '@/lib/supabase/client'
 import type { Lead, LeadStatus } from '@/types/database'
 import { formatCurrency } from '@/lib/utils'
-import { Clock, Tag, Building2, User } from 'lucide-react'
+import { Clock, Tag, Building2, User, MessageSquare } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { LeadTimelineModal } from './LeadTimelineModal'
 import { LeadFreshnessTimer } from './LeadFreshnessTimer'
+import { ContactLeadModal } from './ContactLeadModal'
 
 const COLUMNS: { key: LeadStatus; label: string; color: string }[] = [
   { key: 'novo',       label: 'Novo Lead',   color: '#6366f1' },
@@ -42,12 +43,21 @@ const COLUMNS: { key: LeadStatus; label: string; color: string }[] = [
 
 interface KanbanBoardProps {
   initialLeads: Lead[]
+  sellerFilter?: string | null
 }
 
 // -------------------------------------------------------------
 // Sortable Lead Card Component
 // -------------------------------------------------------------
-function SortableLeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
+function SortableLeadCard({
+  lead,
+  onClick,
+  onContact,
+}: {
+  lead: Lead
+  onClick: () => void
+  onContact: (lead: Lead) => void
+}) {
   const {
     attributes,
     listeners,
@@ -101,8 +111,26 @@ function SortableLeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }
       </div>
 
       <div className="flex flex-col gap-2 mt-3">
-        <div className="flex items-center text-xs font-medium text-gradient">
-          {formatCurrency(lead.value || 0)}
+        <div className="flex items-center justify-between">
+          <div className="text-xs font-semibold text-gradient">
+            {formatCurrency(lead.value || 0)}
+          </div>
+
+          {/* Botão de contato direto pelo card do Kanban */}
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation()
+              onContact(lead)
+            }}
+            className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 hover:border-emerald-500/40 text-[11px] font-semibold transition-all hover:scale-105 active:scale-95 shadow-sm"
+            title="Contactar cliente via WhatsApp"
+          >
+            <MessageSquare className="w-3 h-3" />
+            <span>Contactar</span>
+          </button>
         </div>
         
         {/* Info Tags */}
@@ -144,12 +172,18 @@ function DroppableColumn({ id, children, className }: { id: string; children: Re
 // -------------------------------------------------------------
 // Main Board Component
 // -------------------------------------------------------------
-export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
+export function KanbanBoard({ initialLeads, sellerFilter }: KanbanBoardProps) {
   const [isMounted, setIsMounted] = useState(false)
   const [leads, setLeads] = useState<Lead[]>(initialLeads)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
+  const [contactingLead, setContactingLead] = useState<Lead | null>(null)
   const supabase = createClient()
+
+  // Sincroniza estado quando initialLeads mudar (ex: filtros de vendedor)
+  useEffect(() => {
+    setLeads(initialLeads)
+  }, [initialLeads])
 
   // Realtime Subscription
   useEffect(() => {
@@ -161,10 +195,17 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
         { event: '*', schema: 'public', table: 'leads' },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            setLeads((prev) => [payload.new as Lead, ...prev])
+            const newLead = payload.new as Lead
+            if (sellerFilter && newLead.assigned_to !== sellerFilter) return
+            setLeads((prev) => [newLead, ...prev])
           } else if (payload.eventType === 'UPDATE') {
+            const updatedLead = payload.new as Lead
+            if (sellerFilter && updatedLead.assigned_to !== sellerFilter) {
+              setLeads((prev) => prev.filter((l) => l.id !== updatedLead.id))
+              return
+            }
             setLeads((prev) =>
-              prev.map((l) => (l.id === payload.new.id ? { ...l, ...payload.new } : l))
+              prev.map((l) => (l.id === updatedLead.id ? { ...l, ...updatedLead } : l))
             )
           } else if (payload.eventType === 'DELETE') {
             setLeads((prev) => prev.filter((l) => l.id !== payload.old.id))
@@ -176,7 +217,7 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [supabase])
+  }, [supabase, sellerFilter])
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
@@ -400,6 +441,7 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
                         key={lead.id} 
                         lead={lead} 
                         onClick={() => setSelectedLead(lead)}
+                        onContact={(l) => setContactingLead(l)}
                       />
                     ))}
                   </SortableContext>
@@ -413,18 +455,37 @@ export function KanbanBoard({ initialLeads }: KanbanBoardProps) {
         <DragOverlay>
           {activeLead ? (
             <div className="opacity-90 transform rotate-2">
-              <SortableLeadCard lead={activeLead} onClick={() => {}} />
+              <SortableLeadCard lead={activeLead} onClick={() => {}} onContact={() => {}} />
             </div>
           ) : null}
         </DragOverlay>
       </DndContext>
 
-      {/* Modal */}
+      {/* Modal de Detalhes e Linha do Tempo */}
       {selectedLead && (
         <LeadTimelineModal
           lead={selectedLead}
           isOpen={true}
           onClose={() => setSelectedLead(null)}
+          onLeadUpdated={(updated) => {
+            setLeads((prev) => prev.map((l) => (l.id === updated.id ? { ...l, ...updated } : l)))
+            setSelectedLead((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev))
+          }}
+        />
+      )}
+
+      {/* Modal de Contato Rápido pelo Kanban */}
+      {contactingLead && (
+        <ContactLeadModal
+          lead={contactingLead}
+          isOpen={Boolean(contactingLead)}
+          onClose={() => setContactingLead(null)}
+          onLeadUpdated={(updated) => {
+            setLeads((prev) => prev.map((l) => (l.id === updated.id ? { ...l, ...updated } : l)))
+            if (selectedLead && selectedLead.id === updated.id) {
+              setSelectedLead((prev) => (prev ? { ...prev, ...updated } : null))
+            }
+          }}
         />
       )}
     </>

@@ -59,13 +59,16 @@ export async function POST(req: NextRequest) {
         .in('id', lead_ids)
 
       if (lErr) return NextResponse.json({ error: lErr.message }, { status: 500 })
-      targetLeads = explicitLeads || []
+      // Proteção rigorosa contra reenvio: não redistribuir leads já entregues a outro vendedor
+      targetLeads = (explicitLeads || []).filter((l: any) =>
+        !l.distribution_status || l.distribution_status === 'disponivel' || l.distribution_status === 'respondeu_maquina'
+      )
     } else if (all_available) {
       let q = db
         .from('scraped_leads')
         .select('*')
         .eq('search_id', search_id)
-        .or('distribution_status.is.null,distribution_status.eq.disponivel')
+        .or('distribution_status.is.null,distribution_status.eq.disponivel,distribution_status.eq.respondeu_maquina')
         .order('score', { ascending: false })
         .order('created_at', { ascending: false })
 
@@ -79,7 +82,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (targetLeads.length === 0) {
-      return NextResponse.json({ error: 'Nenhum lead elegível para distribuição encontrado' }, { status: 400 })
+      return NextResponse.json({
+        error: 'Todos os leads selecionados já foram distribuídos anteriormente para um vendedor.'
+      }, { status: 400 })
     }
 
     const targetIds = targetLeads.map((l: any) => l.id)
