@@ -45,7 +45,7 @@ export function VendasTabs({
     {
       key: 'clientes',
       href: '/vendas?tab=clientes',
-      label: isOwner ? '3. Clientes Fechados' : 'Meus Clientes Fechados',
+      label: isOwner ? '3. Clientes & Perdidos' : 'Meus Clientes & Perdidos',
       icon: Users,
       count: clientsCount,
     },

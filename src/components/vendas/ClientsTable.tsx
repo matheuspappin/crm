@@ -6,7 +6,7 @@ import { formatCurrency } from '@/lib/utils'
 import { LeadTimelineModal } from './LeadTimelineModal'
 import {
   Search, CheckCircle2, XCircle, Users, ChevronLeft, ChevronRight,
-  Calendar, Building2, TrendingUp, Filter
+  Calendar, Building2, TrendingUp, Filter, Trash2, Archive
 } from 'lucide-react'
 import { formatDistanceToNow, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -17,23 +17,30 @@ type FilterTab = 'todos' | 'fechado' | 'perdido'
 const PAGE_SIZE = 12
 
 const reasonLabels: Record<FilterTab, { label: string; icon: React.ReactNode; color: string }> = {
-  todos:   { label: 'Todos',   icon: <Users className="w-3.5 h-3.5" />,        color: 'text-foreground' },
-  fechado: { label: 'Ganhos',  icon: <CheckCircle2 className="w-3.5 h-3.5" />, color: 'text-emerald-400' },
-  perdido: { label: 'Perdidos',icon: <XCircle className="w-3.5 h-3.5" />,      color: 'text-red-400' },
+  todos:   { label: 'Todos',               icon: <Users className="w-3.5 h-3.5" />,        color: 'text-foreground' },
+  fechado: { label: 'Ganhos',              icon: <CheckCircle2 className="w-3.5 h-3.5" />, color: 'text-emerald-400' },
+  perdido: { label: 'Perdidos / Lixeira',  icon: <Trash2 className="w-3.5 h-3.5" />,       color: 'text-red-400' },
 }
 
 interface ClientsTableProps {
   leads: Lead[]
+  initialFilter?: FilterTab
 }
 
-export function ClientsTable({ leads }: ClientsTableProps) {
-  const [filter, setFilter] = useState<FilterTab>('todos')
+export function ClientsTable({ leads, initialFilter = 'todos' }: ClientsTableProps) {
+  const [tableLeads, setTableLeads] = useState<Lead[]>(leads)
+  const [filter, setFilter] = useState<FilterTab>(initialFilter)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
 
+  // Sincroniza com as props do servidor
+  useMemo(() => {
+    setTableLeads(leads)
+  }, [leads])
+
   const filtered = useMemo(() => {
-    return leads.filter((l) => {
+    return tableLeads.filter((l) => {
       const matchesFilter =
         filter === 'todos' || l.status === (filter as LeadStatus)
 
@@ -53,12 +60,12 @@ export function ClientsTable({ leads }: ClientsTableProps) {
 
   // KPIs rápidos
   const kpis = useMemo(() => {
-    const won = leads.filter((l) => l.status === 'fechado')
-    const lost = leads.filter((l) => l.status === 'perdido')
+    const won = tableLeads.filter((l) => l.status === 'fechado')
+    const lost = tableLeads.filter((l) => l.status === 'perdido')
     const wonValue = won.reduce((s, l) => s + (l.value || 0), 0)
-    const winRate = leads.length > 0 ? (won.length / leads.length) * 100 : 0
+    const winRate = tableLeads.length > 0 ? (won.length / tableLeads.length) * 100 : 0
     return { won: won.length, lost: lost.length, wonValue, winRate }
-  }, [leads])
+  }, [tableLeads])
 
   function handleFilterChange(f: FilterTab) {
     setFilter(f)
@@ -76,8 +83,8 @@ export function ClientsTable({ leads }: ClientsTableProps) {
       <div className="grid grid-cols-4 gap-4">
         {[
           {
-            label: 'Total de Clientes',
-            value: leads.length,
+            label: 'Total de Finalizados',
+            value: tableLeads.length,
             icon: <Users className="w-4 h-4 text-foreground" />,
             bg: 'bg-foreground/10 border-border/40',
             valueClass: 'text-foreground',
@@ -90,9 +97,9 @@ export function ClientsTable({ leads }: ClientsTableProps) {
             valueClass: 'text-emerald-400',
           },
           {
-            label: 'Negócios Perdidos',
+            label: 'Leads Perdidos / Lixeira',
             value: kpis.lost,
-            icon: <XCircle className="w-4 h-4 text-red-400" />,
+            icon: <Trash2 className="w-4 h-4 text-red-400" />,
             bg: 'bg-red-500/10 border-red-500/20',
             valueClass: 'text-red-400',
           },
@@ -229,6 +236,11 @@ export function ClientsTable({ leads }: ClientsTableProps) {
                             {lead.contact && (
                               <p className="text-[10px] text-muted-foreground">{lead.contact}</p>
                             )}
+                            {lead.status === 'perdido' && lead.loss_reason && (
+                              <p className="text-[10px] text-red-400/80 truncate max-w-[220px]" title={lead.loss_reason}>
+                                Motivo: {lead.loss_reason}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -253,8 +265,8 @@ export function ClientsTable({ leads }: ClientsTableProps) {
                             ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
                             : 'bg-red-500/15 text-red-400 border border-red-500/20'
                         )}>
-                          {isWon ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                          {isWon ? 'Fechado' : 'Perdido'}
+                          {isWon ? <CheckCircle2 className="w-3 h-3" /> : <Trash2 className="w-3 h-3" />}
+                          {isWon ? 'Fechado' : 'Perdido / Lixeira'}
                         </span>
                       </td>
 
@@ -348,6 +360,18 @@ export function ClientsTable({ leads }: ClientsTableProps) {
           lead={selectedLead}
           isOpen={true}
           onClose={() => setSelectedLead(null)}
+          onLeadUpdated={(updated) => {
+            if (updated.status !== 'perdido' && filter === 'perdido') {
+              setTableLeads((prev) => prev.filter((l) => l.id !== updated.id))
+            } else {
+              setTableLeads((prev) => prev.map((l) => (l.id === updated.id ? { ...l, ...updated } : l)))
+            }
+            setSelectedLead((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : null))
+          }}
+          onLeadDeleted={(leadId) => {
+            setTableLeads((prev) => prev.filter((l) => l.id !== leadId))
+            setSelectedLead(null)
+          }}
         />
       )}
     </div>

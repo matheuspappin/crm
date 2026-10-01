@@ -11,7 +11,7 @@ import { SellerFilterSelect } from '@/components/vendas/SellerFilterSelect'
 export default async function VendasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; vendedor?: string }>
+  searchParams: Promise<{ tab?: string; vendedor?: string; filtro?: string }>
 }) {
   const params = await searchParams
   const activeTab = params.tab === 'clientes' ? 'clientes' : 'kanban'
@@ -148,7 +148,10 @@ export default async function VendasPage({
             sellerFilter={sellerFilter}
           />
         ) : (
-          <ClientsTable leads={closedLeadsData} />
+          <ClientsTable
+            leads={closedLeadsData}
+            initialFilter={(params.filtro as any) || 'todos'}
+          />
         )}
       </div>
     </div>

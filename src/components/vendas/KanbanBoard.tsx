@@ -26,12 +26,13 @@ import { CSS } from '@dnd-kit/utilities'
 import { createClient } from '@/lib/supabase/client'
 import type { Lead, LeadStatus } from '@/types/database'
 import { formatCurrency } from '@/lib/utils'
-import { Clock, Tag, Building2, User, MessageSquare } from 'lucide-react'
+import { Clock, Tag, Building2, User, MessageSquare, Trash2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { LeadTimelineModal } from './LeadTimelineModal'
 import { LeadFreshnessTimer } from './LeadFreshnessTimer'
 import { ContactLeadModal } from './ContactLeadModal'
+import { DiscardLeadModal } from './DiscardLeadModal'
 
 const COLUMNS: { key: LeadStatus; label: string; color: string }[] = [
   { key: 'novo',       label: 'Novo Lead',   color: '#6366f1' },
@@ -53,10 +54,12 @@ function SortableLeadCard({
   lead,
   onClick,
   onContact,
+  onDiscard,
 }: {
   lead: Lead
   onClick: () => void
   onContact: (lead: Lead) => void
+  onDiscard: (lead: Lead) => void
 }) {
   const {
     attributes,
@@ -116,21 +119,38 @@ function SortableLeadCard({
             {formatCurrency(lead.value || 0)}
           </div>
 
-          {/* Botão de contato direto pelo card do Kanban */}
-          <button
-            type="button"
-            onPointerDown={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation()
-              onContact(lead)
-            }}
-            className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 hover:border-emerald-500/40 text-[11px] font-semibold transition-all hover:scale-105 active:scale-95 shadow-sm"
-            title="Contactar cliente via WhatsApp"
-          >
-            <MessageSquare className="w-3 h-3" />
-            <span>Contactar</span>
-          </button>
+          <div className="flex items-center gap-1.5">
+            {/* Botão de descarte rápido para lixeira/perdidos */}
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation()
+                onDiscard(lead)
+              }}
+              className="p-1 rounded-md text-muted-foreground/40 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+              title="Descartar lead (não sucedido) para lixeira/perdidos"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Botão de contato direto pelo card do Kanban */}
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation()
+                onContact(lead)
+              }}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 hover:border-emerald-500/40 text-[11px] font-semibold transition-all hover:scale-105 active:scale-95 shadow-sm"
+              title="Contactar cliente via WhatsApp"
+            >
+              <MessageSquare className="w-3 h-3" />
+              <span>Contactar</span>
+            </button>
+          </div>
         </div>
         
         {/* Info Tags */}
@@ -178,6 +198,7 @@ export function KanbanBoard({ initialLeads, sellerFilter }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [contactingLead, setContactingLead] = useState<Lead | null>(null)
+  const [discardingLead, setDiscardingLead] = useState<Lead | null>(null)
   const supabase = createClient()
 
   // Sincroniza estado quando initialLeads mudar (ex: filtros de vendedor)
@@ -442,6 +463,7 @@ export function KanbanBoard({ initialLeads, sellerFilter }: KanbanBoardProps) {
                         lead={lead} 
                         onClick={() => setSelectedLead(lead)}
                         onContact={(l) => setContactingLead(l)}
+                        onDiscard={(l) => setDiscardingLead(l)}
                       />
                     ))}
                   </SortableContext>
@@ -455,7 +477,7 @@ export function KanbanBoard({ initialLeads, sellerFilter }: KanbanBoardProps) {
         <DragOverlay>
           {activeLead ? (
             <div className="opacity-90 transform rotate-2">
-              <SortableLeadCard lead={activeLead} onClick={() => {}} onContact={() => {}} />
+              <SortableLeadCard lead={activeLead} onClick={() => {}} onContact={() => {}} onDiscard={() => {}} />
             </div>
           ) : null}
         </DragOverlay>
@@ -468,8 +490,17 @@ export function KanbanBoard({ initialLeads, sellerFilter }: KanbanBoardProps) {
           isOpen={true}
           onClose={() => setSelectedLead(null)}
           onLeadUpdated={(updated) => {
-            setLeads((prev) => prev.map((l) => (l.id === updated.id ? { ...l, ...updated } : l)))
-            setSelectedLead((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev))
+            if (updated.status === 'perdido') {
+              setLeads((prev) => prev.filter((l) => l.id !== updated.id))
+              setSelectedLead(null)
+            } else {
+              setLeads((prev) => prev.map((l) => (l.id === updated.id ? { ...l, ...updated } : l)))
+              setSelectedLead((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev))
+            }
+          }}
+          onLeadDeleted={(leadId) => {
+            setLeads((prev) => prev.filter((l) => l.id !== leadId))
+            setSelectedLead(null)
           }}
         />
       )}
@@ -485,6 +516,29 @@ export function KanbanBoard({ initialLeads, sellerFilter }: KanbanBoardProps) {
             if (selectedLead && selectedLead.id === updated.id) {
               setSelectedLead((prev) => (prev ? { ...prev, ...updated } : null))
             }
+          }}
+        />
+      )}
+
+      {/* Modal de Descarte Rápido pelo Kanban */}
+      {discardingLead && (
+        <DiscardLeadModal
+          lead={discardingLead}
+          isOpen={Boolean(discardingLead)}
+          onClose={() => setDiscardingLead(null)}
+          onSuccess={(updatedLead) => {
+            setLeads((prev) => prev.filter((l) => l.id !== updatedLead.id))
+            if (selectedLead?.id === updatedLead.id) {
+              setSelectedLead(null)
+            }
+            setDiscardingLead(null)
+          }}
+          onLeadDeleted={(leadId) => {
+            setLeads((prev) => prev.filter((l) => l.id !== leadId))
+            if (selectedLead?.id === leadId) {
+              setSelectedLead(null)
+            }
+            setDiscardingLead(null)
           }}
         />
       )}

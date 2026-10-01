@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { X, Mail, Phone, Calendar, Clock, FileText, CheckCircle2, ChevronRight, MessageSquare, Briefcase, Pencil, Check, MapPin, MonitorPlay, ExternalLink, AlertTriangle } from 'lucide-react'
+import { X, Mail, Phone, Calendar, Clock, FileText, CheckCircle2, ChevronRight, MessageSquare, Briefcase, Pencil, Check, MapPin, MonitorPlay, ExternalLink, AlertTriangle, Trash2, RotateCcw, Archive, XCircle } from 'lucide-react'
 import { formatCurrency, cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -11,6 +11,7 @@ import type { Lead, Interaction, Project } from '@/types/database'
 import { useRouter } from 'next/navigation'
 import { LeadFreshnessTimer } from './LeadFreshnessTimer'
 import { ContactLeadModal } from './ContactLeadModal'
+import { DiscardLeadModal } from './DiscardLeadModal'
 import { extractCleanPhone, formatPhoneDisplay, isAddressLike, isEmail } from '@/lib/contact'
 
 interface LeadTimelineModalProps {
@@ -18,9 +19,10 @@ interface LeadTimelineModalProps {
   isOpen: boolean
   onClose: () => void
   onLeadUpdated?: (updatedLead: Lead) => void
+  onLeadDeleted?: (leadId: string) => void
 }
 
-export function LeadTimelineModal({ lead, isOpen, onClose, onLeadUpdated }: LeadTimelineModalProps) {
+export function LeadTimelineModal({ lead, isOpen, onClose, onLeadUpdated, onLeadDeleted }: LeadTimelineModalProps) {
   const [interactions, setInteractions] = useState<(Interaction & { created_by_name?: string })[]>([])
   const [loading, setLoading] = useState(true)
   const [newNote, setNewNote] = useState('')
@@ -40,6 +42,10 @@ export function LeadTimelineModal({ lead, isOpen, onClose, onLeadUpdated }: Lead
   const [editContactValue, setEditContactValue] = useState(lead.contact || '')
   const [savingContact, setSavingContact] = useState(false)
   const [project, setProject] = useState<Project | null>(null)
+  
+  // Estado para descarte / lixeira e reativação
+  const [isDiscardModalOpen, setIsDiscardModalOpen] = useState(false)
+  const [reactivating, setReactivating] = useState(false)
   
   const supabase = createClient()
   const router = useRouter()
@@ -226,6 +232,43 @@ export function LeadTimelineModal({ lead, isOpen, onClose, onLeadUpdated }: Lead
     window.open(`mailto:${email}?subject=${encodeURIComponent(`Contato Comercial - ${lead.name}`)}`, '_blank')
   }
 
+  async function handleReactivateLead() {
+    if (!confirm('Deseja reativar este lead e devolvê-lo ao Funil Kanban ativo (etapa Novo Lead)?')) return
+
+    setReactivating(true)
+    const { data: userData } = await supabase.auth.getUser()
+    const now = new Date().toISOString()
+
+    const { error } = await (supabase as any)
+      .from('leads')
+      .update({
+        status: 'novo',
+        loss_reason: null,
+        last_moved_at: now,
+      })
+      .eq('id', lead.id)
+
+    if (!error) {
+      if (userData?.user) {
+        await (supabase as any).from('interactions').insert({
+          lead_id: lead.id,
+          type: 'note',
+          notes: '🔄 Lead reativado e retornado ao Funil Kanban ativo.',
+          created_by: userData.user.id,
+        })
+      }
+      lead.status = 'novo'
+      lead.loss_reason = null
+      lead.last_moved_at = now
+      if (onLeadUpdated) onLeadUpdated({ ...lead, status: 'novo', loss_reason: null, last_moved_at: now })
+      router.refresh()
+      fetchInteractions()
+    } else {
+      alert('Erro ao reativar lead: ' + error.message)
+    }
+    setReactivating(false)
+  }
+
   if (!isOpen) return null
 
   return (
@@ -347,6 +390,43 @@ export function LeadTimelineModal({ lead, isOpen, onClose, onLeadUpdated }: Lead
           </button>
         </div>
 
+        {/* Banner de Lead Perdido / Lixeira */}
+        {lead.status === 'perdido' && (
+          <div className="mx-6 mt-4 p-3.5 rounded-xl bg-red-500/10 border border-red-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center shrink-0">
+                <Trash2 className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-red-400">Lead Arquivado em Perdidos / Lixeira</p>
+                <p className="text-xs text-red-200/80">
+                  {lead.loss_reason ? `Motivo: ${lead.loss_reason}` : 'Este lead foi marcado como não bem-sucedido e está arquivado.'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleReactivateLead}
+                disabled={reactivating}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                {reactivating ? 'Reativando...' : 'Reativar no Funil'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsDiscardModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-medium border border-red-500/30 transition-all"
+                title="Excluir permanentemente do banco"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Excluir Definitivo
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 flex flex-col md:flex-row gap-6">
           
@@ -417,9 +497,20 @@ export function LeadTimelineModal({ lead, isOpen, onClose, onLeadUpdated }: Lead
                 
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Status Atual</p>
-                  <span className="badge-status bg-foreground/10 text-foreground border border-border/40 capitalize">
-                    {lead.status}
+                  <span className={cn(
+                    "badge-status capitalize",
+                    lead.status === 'perdido' 
+                      ? 'bg-red-500/15 text-red-400 border border-red-500/25'
+                      : 'bg-foreground/10 text-foreground border border-border/40'
+                  )}>
+                    {lead.status === 'perdido' ? 'Perdido / Lixeira' : lead.status}
                   </span>
+                  {lead.status === 'perdido' && lead.loss_reason && (
+                    <div className="mt-2 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-xs">
+                      <p className="font-semibold text-red-400 mb-0.5">Motivo do Descarte:</p>
+                      <p className="text-red-300/80">{lead.loss_reason}</p>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -619,6 +710,39 @@ export function LeadTimelineModal({ lead, isOpen, onClose, onLeadUpdated }: Lead
                 <Mail className="w-4 h-4" />
                 Enviar E-mail
               </button>
+
+              {/* Botão de Descartar Lead / Mover p/ Lixeira */}
+              {lead.status !== 'perdido' ? (
+                <button 
+                  type="button"
+                  onClick={() => setIsDiscardModalOpen(true)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 hover:border-red-500/40 shadow-sm"
+                  title="Mover lead não sucedido para a Lixeira / Perdidos"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Descartar Lead (Não sucedido)
+                </button>
+              ) : (
+                <div className="flex flex-col gap-2 pt-2 border-t border-border">
+                  <button 
+                    type="button"
+                    onClick={handleReactivateLead}
+                    disabled={reactivating}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 bg-emerald-600 hover:bg-emerald-500 text-white shadow"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    {reactivating ? 'Reativando...' : 'Reativar no Funil'}
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setIsDiscardModalOpen(true)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-xs transition-all duration-200 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Opções de Exclusão Definitiva
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -749,6 +873,31 @@ export function LeadTimelineModal({ lead, isOpen, onClose, onLeadUpdated }: Lead
           }}
           initialScriptId={project?.status === 'aguardando_aprovacao' ? 'homologacao' : 'apresentacao'}
           projectUrl={project?.prod_url || project?.figma_url}
+        />
+      )}
+
+      {/* Modal de Descarte / Lixeira */}
+      {isDiscardModalOpen && (
+        <DiscardLeadModal
+          lead={lead}
+          isOpen={isDiscardModalOpen}
+          onClose={() => setIsDiscardModalOpen(false)}
+          onSuccess={(updatedLead) => {
+            lead.status = updatedLead.status
+            lead.loss_reason = updatedLead.loss_reason
+            lead.last_moved_at = updatedLead.last_moved_at
+            if (onLeadUpdated) onLeadUpdated(updatedLead)
+            setIsDiscardModalOpen(false)
+            fetchInteractions()
+            router.refresh()
+            onClose()
+          }}
+          onLeadDeleted={(leadId) => {
+            if (onLeadDeleted) onLeadDeleted(leadId)
+            setIsDiscardModalOpen(false)
+            router.refresh()
+            onClose()
+          }}
         />
       )}
     </div>
