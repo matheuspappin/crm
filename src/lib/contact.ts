@@ -97,6 +97,11 @@ export const DEFAULT_CONTACT_SCRIPTS: { id: string; label: string; template: str
     template: 'Olá {nome}! Tudo bem? Gostaria de alinhar uma breve apresentação online de 10 minutos para mostrar na prática como podemos acelerar as vendas da {empresa}. Qual seria um bom horário para você hoje ou amanhã?',
   },
   {
+    id: 'homologacao',
+    label: 'Envio para Homologação / Revisão',
+    template: 'Olá {nome}, tudo bem? Aqui é o {vendedor} da Akaai! 🚀\n\nO projeto da {empresa} foi finalizado pela nossa equipe técnica e está disponível para a sua revisão!\n\n🔗 Link de Homologação: {link}\n\nPor favor, acesse o link, faça seus testes e me confirme se está aprovado ou se precisamos ajustar algo!',
+  },
+  {
     id: 'followup',
     label: 'Retomada / Follow-up',
     template: 'Oi {nome}, tudo bem? Imagino que a rotina na {empresa} esteja corrida! Passando só para saber se conseguiu dar uma olhada na mensagem que te enviei anteriormente? Um abraço!',

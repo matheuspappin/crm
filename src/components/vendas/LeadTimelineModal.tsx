@@ -1,12 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { X, Mail, Phone, Calendar, Clock, FileText, CheckCircle2, ChevronRight, MessageSquare, Briefcase, Pencil, Check, MapPin } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { X, Mail, Phone, Calendar, Clock, FileText, CheckCircle2, ChevronRight, MessageSquare, Briefcase, Pencil, Check, MapPin, MonitorPlay, ExternalLink, AlertTriangle } from 'lucide-react'
+import { formatCurrency, cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import type { Lead, Interaction } from '@/types/database'
+import type { Lead, Interaction, Project } from '@/types/database'
 import { useRouter } from 'next/navigation'
 import { LeadFreshnessTimer } from './LeadFreshnessTimer'
 import { ContactLeadModal } from './ContactLeadModal'
@@ -38,6 +39,7 @@ export function LeadTimelineModal({ lead, isOpen, onClose, onLeadUpdated }: Lead
   const [isEditingContact, setIsEditingContact] = useState(false)
   const [editContactValue, setEditContactValue] = useState(lead.contact || '')
   const [savingContact, setSavingContact] = useState(false)
+  const [project, setProject] = useState<Project | null>(null)
   
   const supabase = createClient()
   const router = useRouter()
@@ -46,8 +48,22 @@ export function LeadTimelineModal({ lead, isOpen, onClose, onLeadUpdated }: Lead
     if (isOpen) {
       fetchInteractions()
       fetchUserData()
+      fetchProject()
     }
   }, [isOpen, lead.id])
+
+  async function fetchProject() {
+    const { data } = await (supabase as any)
+      .from('projects')
+      .select('*, assigned_dev_user:users!projects_assigned_dev_fkey(name, email)')
+      .eq('lead_id', lead.id)
+      .maybeSingle()
+    if (data) {
+      setProject(data as Project)
+    } else {
+      setProject(null)
+    }
+  }
 
   async function fetchUserData() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -469,6 +485,100 @@ export function LeadTimelineModal({ lead, isOpen, onClose, onLeadUpdated }: Lead
               </div>
             </div>
 
+            {/* Acompanhamento do Projeto Técnico (se houver projeto criado) */}
+            {project && (
+              <div className="glass-card p-5 space-y-3 border-teal-500/20 bg-teal-500/5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MonitorPlay className="w-4 h-4 text-teal-400" />
+                    <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">Projeto Técnico</h3>
+                  </div>
+                  <span className={cn(
+                    'text-[10px] font-bold px-2 py-0.5 rounded-full border',
+                    project.status === 'entregue' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                    project.status === 'aguardando_aprovacao' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 animate-pulse' :
+                    project.status === 'revisao_solicitada' ? 'bg-pink-500/20 text-pink-400 border-pink-500/30' :
+                    'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                  )}>
+                    {project.status === 'entregue' ? 'Entregue ✓' :
+                     project.status === 'aguardando_aprovacao' ? 'Aguardando Cliente' :
+                     project.status === 'revisao_solicitada' ? 'Revisão Solicitada' :
+                     'Em Desenvolvimento'}
+                  </span>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  {project.assigned_dev_user?.name && (
+                    <div className="flex items-center justify-between py-1 border-b border-border/40">
+                      <span className="text-muted-foreground">Dev Responsável:</span>
+                      <span className="font-medium text-foreground">{project.assigned_dev_user.name}</span>
+                    </div>
+                  )}
+
+                  <div>
+                    <span className="text-muted-foreground block mb-1">Ambiente de Teste / Homologação:</span>
+                    {project.prod_url ? (
+                      <a
+                        href={project.prod_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-teal-400 hover:underline flex items-center gap-1.5 font-medium break-all bg-background/60 p-2 rounded-lg border border-border"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{project.prod_url}</span>
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground/60 italic text-[11px]">Link ainda não inserido pelo desenvolvedor.</span>
+                    )}
+                  </div>
+
+                  {project.figma_url && (
+                    <div>
+                      <span className="text-muted-foreground block mb-1">Figma / Design:</span>
+                      <a
+                        href={project.figma_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-pink-400 hover:underline flex items-center gap-1.5 font-medium break-all bg-background/60 p-2 rounded-lg border border-border"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{project.figma_url}</span>
+                      </a>
+                    </div>
+                  )}
+
+                  {project.status === 'revisao_solicitada' && project.revision_notes && (
+                    <div className="p-2.5 rounded-lg bg-pink-500/10 border border-pink-500/20 text-xs">
+                      <p className="font-semibold text-pink-400 flex items-center gap-1 mb-0.5">
+                        <AlertTriangle className="w-3 h-3" /> Notas de Revisão:
+                      </p>
+                      <p className="text-pink-300/80">{project.revision_notes}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-border flex items-center justify-between">
+                  <Link
+                    href="/vendas/projetos"
+                    className="text-[11px] text-teal-400 hover:underline flex items-center gap-1 font-medium"
+                  >
+                    Painel de Projetos <ExternalLink className="w-3 h-3" />
+                  </Link>
+
+                  {project.status === 'aguardando_aprovacao' && (
+                    <button
+                      type="button"
+                      onClick={() => setIsContactModalOpen(true)}
+                      className="px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] flex items-center gap-1 transition-colors"
+                      title="Enviar link de homologação via WhatsApp para o cliente revisar"
+                    >
+                      <MessageSquare className="w-3 h-3" /> Enviar p/ Revisão
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="glass-card p-5 flex flex-col gap-3">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Ações Rápidas</h3>
               
@@ -637,6 +747,8 @@ export function LeadTimelineModal({ lead, isOpen, onClose, onLeadUpdated }: Lead
             fetchInteractions()
             router.refresh()
           }}
+          initialScriptId={project?.status === 'aguardando_aprovacao' ? 'homologacao' : 'apresentacao'}
+          projectUrl={project?.prod_url || project?.figma_url}
         />
       )}
     </div>

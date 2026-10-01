@@ -24,6 +24,7 @@ import {
   Layers,
   Bot,
   Settings,
+  MonitorPlay,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -46,6 +47,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Layers,
   Bot,
   Settings,
+  MonitorPlay,
 }
 
 interface SidebarProps {

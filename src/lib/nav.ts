@@ -25,7 +25,7 @@ export const NAV_ITEMS: NavItemConfig[] = [
     label: 'Gestor de Lotes',
     description: 'Distribuição de Leads',
     iconName: 'Layers',
-    roles: ['vendas', 'owner'],
+    roles: ['owner'],
     category: 'comercial',
   },
   {
@@ -33,6 +33,14 @@ export const NAV_ITEMS: NavItemConfig[] = [
     label: 'Funil Comercial',
     description: 'Kanban & Pipeline',
     iconName: 'Kanban',
+    roles: ['vendas', 'owner'],
+    category: 'comercial',
+  },
+  {
+    href: '/vendas/projetos',
+    label: 'Projetos em Andamento',
+    description: 'Acompanhar & Homologação',
+    iconName: 'MonitorPlay',
     roles: ['vendas', 'owner'],
     category: 'comercial',
   },

@@ -31,6 +31,8 @@ interface ContactLeadModalProps {
   isOpen: boolean
   onClose: () => void
   onLeadUpdated?: (updatedLead: Lead) => void
+  initialScriptId?: string
+  projectUrl?: string | null
 }
 
 export function ContactLeadModal({
@@ -38,6 +40,8 @@ export function ContactLeadModal({
   isOpen,
   onClose,
   onLeadUpdated,
+  initialScriptId = 'apresentacao',
+  projectUrl = null,
 }: ContactLeadModalProps) {
   const router = useRouter()
   const supabase = createClient()
@@ -55,7 +59,7 @@ export function ContactLeadModal({
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
   // Script selecionado e texto da mensagem
-  const [selectedScriptId, setSelectedScriptId] = useState('apresentacao')
+  const [selectedScriptId, setSelectedScriptId] = useState(initialScriptId || 'apresentacao')
   const [messageText, setMessageText] = useState('')
   const [copied, setCopied] = useState(false)
 
@@ -63,6 +67,12 @@ export function ContactLeadModal({
   const [recordTimeline, setRecordTimeline] = useState(true)
   const [advanceStatus, setAdvanceStatus] = useState(lead.status === 'novo')
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (isOpen && initialScriptId) {
+      setSelectedScriptId(initialScriptId)
+    }
+  }, [isOpen, initialScriptId])
 
   useEffect(() => {
     async function loadUser() {
@@ -88,14 +98,16 @@ export function ContactLeadModal({
     const script = DEFAULT_CONTACT_SCRIPTS.find(s => s.id === selectedScriptId) || DEFAULT_CONTACT_SCRIPTS[0]
     const firstName = lead.name ? lead.name.split(' ')[0] : 'lá'
     const company = lead.company_name || lead.name || 'sua empresa'
+    const targetLink = projectUrl || 'https://...'
 
     const rendered = script.template
       .replace(/{nome}/gi, firstName)
       .replace(/{empresa}/gi, company)
       .replace(/{vendedor}/gi, sellerName)
+      .replace(/{link}/gi, targetLink)
 
     setMessageText(rendered)
-  }, [selectedScriptId, lead, sellerName, isOpen])
+  }, [selectedScriptId, lead, sellerName, projectUrl, isOpen])
 
   if (!isOpen) return null
 

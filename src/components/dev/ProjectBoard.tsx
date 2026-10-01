@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { MonitorPlay, PenTool, ExternalLink, CheckCircle2, ChevronRight, Briefcase, Clock, AlertTriangle, Send } from 'lucide-react'
+import { MonitorPlay, PenTool, ExternalLink, CheckCircle2, ChevronRight, Briefcase, Clock, AlertTriangle, Send, MessageSquare } from 'lucide-react'
 import type { Project, ProjectStatus } from '@/types/database'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { ContactLeadModal } from '@/components/vendas/ContactLeadModal'
 
 interface Seller {
   id: string
@@ -23,6 +24,7 @@ export function ProjectBoard({ initialProjects, devs, viewerRole = 'dev' }: Proj
   const [editingId, setEditingId] = useState<string | null>(null)
   const [reviewModalId, setReviewModalId] = useState<string | null>(null)
   const [revisionNotes, setRevisionNotes] = useState('')
+  const [contactingProject, setContactingProject] = useState<Project | null>(null)
   const supabase = createClient()
   const router = useRouter()
 
@@ -148,7 +150,8 @@ export function ProjectBoard({ initialProjects, devs, viewerRole = 'dev' }: Proj
   const deliveredProjects = projects.filter(p => p.status === 'entregue')
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       
       {/* Coluna 1: Em Andamento */}
       <div className="flex flex-col h-[calc(100vh-280px)]">
@@ -189,7 +192,19 @@ export function ProjectBoard({ initialProjects, devs, viewerRole = 'dev' }: Proj
 
               <div className="flex items-start justify-between mb-3 pr-28">
                 <div>
-                  <h3 className="font-bold text-foreground text-lg mb-1">{project.lead?.company_name || project.lead?.name || 'Projeto Sem Nome'}</h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-bold text-foreground text-lg">{project.lead?.company_name || project.lead?.name || 'Projeto Sem Nome'}</h3>
+                    {project.lead && (
+                      <button
+                        type="button"
+                        onClick={() => setContactingProject(project)}
+                        className="p-1 rounded-md text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                        title="Contactar cliente via WhatsApp"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Briefcase className="w-3.5 h-3.5" />
                     <span className="truncate max-w-[200px]">{project.lead?.project_description || 'Sem descrição'}</span>
@@ -289,6 +304,20 @@ export function ProjectBoard({ initialProjects, devs, viewerRole = 'dev' }: Proj
                   {viewerRole !== 'dev' && project.status === 'aguardando_aprovacao' && (
                     <>
                       <button 
+                        type="button"
+                        onClick={() => {
+                          if (!project.lead) {
+                            alert('Dados do cliente não encontrados.')
+                            return
+                          }
+                          setContactingProject(project)
+                        }}
+                        className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+                        title="Enviar link de homologação para o cliente testar e aprovar via WhatsApp"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" /> Mandar p/ Cliente Revisar
+                      </button>
+                      <button 
                         onClick={() => setReviewModalId(project.id)} 
                         className="flex items-center gap-1.5 text-xs font-semibold border border-pink-500/20 text-pink-500 px-3 py-1.5 rounded-lg hover:bg-pink-500/10 transition-colors"
                       >
@@ -372,7 +401,18 @@ export function ProjectBoard({ initialProjects, devs, viewerRole = 'dev' }: Proj
           )}
         </div>
       </div>
-
     </div>
-  )
+
+    {/* Modal de Contato / Homologação WhatsApp */}
+    {contactingProject && contactingProject.lead && (
+      <ContactLeadModal
+        lead={contactingProject.lead}
+        isOpen={!!contactingProject}
+        onClose={() => setContactingProject(null)}
+        initialScriptId={contactingProject.status === 'aguardando_aprovacao' ? 'homologacao' : 'apresentacao'}
+        projectUrl={contactingProject.prod_url || contactingProject.figma_url}
+      />
+    )}
+  </>
+)
 }

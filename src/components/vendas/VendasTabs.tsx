@@ -1,11 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { Kanban, Users, Layers } from 'lucide-react'
+import { Kanban, Users, Layers, MonitorPlay } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface VendasTabsProps {
-  activeTab: 'lotes' | 'kanban' | 'clientes' | string
+  activeTab: 'lotes' | 'kanban' | 'clientes' | 'projetos' | string
   kanbanCount?: number
   clientsCount?: number
   projectsCount?: number
@@ -17,6 +17,7 @@ export function VendasTabs({
   activeTab,
   kanbanCount,
   clientsCount,
+  projectsCount,
   lotesCount,
   isOwner = true,
 }: VendasTabsProps) {
@@ -24,6 +25,7 @@ export function VendasTabs({
   // 1. Gestor de Lotes: O Super Admin visualiza e distribui os blocos de leads quentes para os vendedores
   // 2. Funil Kanban: Os vendedores recebem os leads quentes, negociam e avançam no pipeline
   // 3. Clientes Fechados: Gestão dos contratos e clientes conquistados
+  // 4. Projetos em Andamento: Acompanhamento de entregas, homologação e revisão com o cliente
   const allTabs = [
     {
       key: 'lotes',
@@ -46,6 +48,13 @@ export function VendasTabs({
       label: isOwner ? '3. Clientes Fechados' : 'Meus Clientes Fechados',
       icon: Users,
       count: clientsCount,
+    },
+    {
+      key: 'projetos',
+      href: '/vendas/projetos',
+      label: isOwner ? '4. Projetos em Andamento' : 'Meus Projetos em Andamento',
+      icon: MonitorPlay,
+      count: projectsCount,
     },
   ]
 
