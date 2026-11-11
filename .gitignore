@@ -42,3 +42,11 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# === Adicionado automaticamente ===
+node_modules/
+.godot/
+dist/
+build/
+__pycache__/
+.claude-tmp/
